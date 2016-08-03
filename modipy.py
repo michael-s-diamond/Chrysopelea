@@ -1,5 +1,5 @@
 """
-Define basic functions for using MODIS data
+Main file for defining functions to use MODIS data in Python.
 """
 
 #Import libraries
