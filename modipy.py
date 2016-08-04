@@ -1,5 +1,9 @@
 """
 Main file for defining functions to use MODIS data in Python.
+
+Modification history
+--------------------
+Written: Michael Diamond, 8/3/16, Seattle, WA
 """
 
 #Import libraries
@@ -7,15 +11,8 @@ from pyhdf import SD
 from pyhdf.SD import SDC
 import numpy as np
 import numpy.ma as ma
-import astropy.units as u
-import astropy.constants as const
 import matplotlib.pylab as plt
 from mpl_toolkits.basemap import Basemap
-
-#Set constants
-c = const.c #speed of light
-k = const.k_B #Boltzmann's constant
-h = const.h #Planck's constant
 
 """
 General purpose functions
@@ -33,6 +30,15 @@ def cal_day(julian_day,year):
     
     year : int
     Year.
+    
+    Returns
+    -------
+    cal_day : string
+    Calendar month and day (no year).
+    
+    Modification history
+    --------------------
+    Written: Michael Diamond, 8/3/16, Seattle, WA
     """
     if julian_day <= 59:
         if julian_day <= 31:
@@ -101,83 +107,92 @@ def avg_wavelength(band):
     ----------
     band : int
     MODIS band, from 1 to 36.
+    
+    Returns
+    -------
+    For band < 20: average wavelength in nm.
+    For band >= 20: average wavelength in microns.
+    
+    Modification history
+    --------------------
+    Written: Michael Diamond, 8/3/16, Seattle, WA
     """
     if band == 1:
-        return (670 + 620)/2. * u.nm
+        return (670 + 620)/2. 
     elif band == 2:
-        return (841 + 876)/2. * u.nm
+        return (841 + 876)/2. 
     elif band == 3:
-        return (459 + 479)/2. * u.nm
+        return (459 + 479)/2. 
     elif band == 4:
-        return (545 + 565)/2. * u.nm
+        return (545 + 565)/2. 
     elif band == 5:
-        return (1230 + 1250)/2. * u.nm
+        return (1230 + 1250)/2. 
     elif band == 6:
-        return (1628 + 1652)/2. * u.nm
+        return (1628 + 1652)/2. 
     elif band == 7:
-        return (2105 + 2155)/2. * u.nm
+        return (2105 + 2155)/2. 
     elif band == 8:
-        return (405 + 420)/2. * u.nm
+        return (405 + 420)/2. 
     elif band == 9:
-        return (438 + 448)/2. * u.nm
+        return (438 + 448)/2. 
     elif band == 10:
-        return (483 + 493)/2. * u.nm
+        return (483 + 493)/2. 
     elif band == 11:
-        return (526 + 536)/2. * u.nm
+        return (526 + 536)/2. 
     elif band == 12:
-        return (546 + 556)/2. * u.nm
+        return (546 + 556)/2. 
     elif band == 13:
-        return (662 + 672)/2. * u.nm
+        return (662 + 672)/2. 
     elif band == 14:
-        return (673 + 683)/2. * u.nm
+        return (673 + 683)/2. 
     elif band == 15:
-        return (743 + 753)/2. * u.nm
+        return (743 + 753)/2. 
     elif band == 16:
-        return (862 + 877)/2. * u.nm
+        return (862 + 877)/2. 
     elif band == 17:
-        return (890 + 920)/2. * u.nm
+        return (890 + 920)/2. 
     elif band == 18:
-        return (931 + 941)/2. * u.nm
+        return (931 + 941)/2. 
     elif band == 19:
-        return (915 + 965)/2. * u.nm
+        return (915 + 965)/2. 
     elif band == 20:
-        return (3.660 + 3.840)/2. * u.micron
+        return (3.660 + 3.840)/2. 
     elif band == 21:
-        return (3.929 + 3.989)/2. * u.micron
+        return (3.929 + 3.989)/2. 
     elif band == 22:
-        return (3.929 + 3.989)/2. * u.micron
+        return (3.929 + 3.989)/2. 
     elif band == 23:
-        return (4.020 + 4.080)/2. * u.micron
+        return (4.020 + 4.080)/2. 
     elif band == 24:
-        return (4.433 + 4.498)/2. * u.micron
+        return (4.433 + 4.498)/2. 
     elif band == 25:
-        return (4.482 + 4.549)/2. * u.micron
+        return (4.482 + 4.549)/2. 
     elif band == 26:
-        return (1.360 + 1.390)/2. * u.micron
+        return (1.360 + 1.390)/2. 
     elif band == 27:
-        return (6.535 + 6.895)/2. * u.micron
+        return (6.535 + 6.895)/2. 
     elif band == 28:
-        return (7.175 + 7.475)/2. * u.micron
+        return (7.175 + 7.475)/2. 
     elif band == 29:
-        return (8.400 + 8.700)/2. * u.micron
+        return (8.400 + 8.700)/2. 
     elif band == 30:
-        return (9.580 + 9.880)/2. * u.micron
+        return (9.580 + 9.880)/2. 
     elif band == 31:
-        return (10.780 + 11.280)/2. * u.micron
+        return (10.780 + 11.280)/2. 
     elif band == 32:
-        return (11.770 + 12.270)/2. * u.micron
+        return (11.770 + 12.270)/2. 
     elif band == 33:
-        return (13.185 + 13.485)/2. * u.micron
+        return (13.185 + 13.485)/2. 
     elif band == 34:
-        return (13.485 + 13.785)/2. * u.micron
+        return (13.485 + 13.785)/2. 
     elif band == 35:
-        return (13.785 + 14.085)/2. * u.micron
+        return (13.785 + 14.085)/2. 
     elif band == 36:
-        return (14.085 + 14.385)/2. * u.micron
+        return (14.085 + 14.385)/2. 
     else:
         print 'Error: Band must be an integer between 1-36.'
 
-def delta_wavelength(band):
+def channel_width(band):
     """
     Wavelength spread for given MODIS spectral band.
     
@@ -185,79 +200,88 @@ def delta_wavelength(band):
     ----------
     band : int
     MODIS band, from 1 to 36.
+    
+    Returns
+    -------
+    For band < 20: spectral width in nm.
+    For band >= 20: spectral width in microns.
+    
+    Modification history
+    --------------------
+    Written: Michael Diamond, 8/3/16, Seattle, WA
     """
     if band == 1:
-        return np.abs(670 - 620) * u.nm
+        return np.abs(670 - 620) 
     elif band == 2:
-        return np.abs(841 - 876) * u.nm
+        return np.abs(841 - 876) 
     elif band == 3:
-        return np.abs(459 - 479) * u.nm
+        return np.abs(459 - 479) 
     elif band == 4:
-        return np.abs(545 - 565) * u.nm
+        return np.abs(545 - 565) 
     elif band == 5:
-        return np.abs(1230 - 1250) * u.nm
+        return np.abs(1230 - 1250) 
     elif band == 6:
-        return np.abs(1628 - 1652) * u.nm
+        return np.abs(1628 - 1652) 
     elif band == 7:
-        return np.abs(2105 - 2155) * u.nm
+        return np.abs(2105 - 2155) 
     elif band == 8:
-        return np.abs(405 - 420) * u.nm
+        return np.abs(405 - 420) 
     elif band == 9:
-        return np.abs(438 - 448) * u.nm
+        return np.abs(438 - 448) 
     elif band == 10:
-        return np.abs(483 - 493) * u.nm
+        return np.abs(483 - 493) 
     elif band == 11:
-        return np.abs(526 - 536) * u.nm
+        return np.abs(526 - 536) 
     elif band == 12:
-        return np.abs(546 - 556) * u.nm
+        return np.abs(546 - 556) 
     elif band == 13:
-        return np.abs(662 - 672) * u.nm
+        return np.abs(662 - 672) 
     elif band == 14:
-        return np.abs(673 - 683) * u.nm
+        return np.abs(673 - 683) 
     elif band == 15:
-        return np.abs(743 - 753) * u.nm
+        return np.abs(743 - 753) 
     elif band == 16:
-        return np.abs(862 - 877) * u.nm
+        return np.abs(862 - 877) 
     elif band == 17:
-        return np.abs(890 - 920) * u.nm
+        return np.abs(890 - 920) 
     elif band == 18:
-        return np.abs(931 - 941) * u.nm
+        return np.abs(931 - 941) 
     elif band == 19:
-        return np.abs(915 - 965) * u.nm
+        return np.abs(915 - 965) 
     elif band == 20:
-        return np.abs(3.660 - 3.840) * u.micron
+        return np.abs(3.660 - 3.840) 
     elif band == 21:
-        return np.abs(3.929 - 3.989) * u.micron
+        return np.abs(3.929 - 3.989) 
     elif band == 22:
-        return np.abs(3.929 - 3.989) * u.micron
+        return np.abs(3.929 - 3.989) 
     elif band == 23:
-        return np.abs(4.020 - 4.080) * u.micron
+        return np.abs(4.020 - 4.080) 
     elif band == 24:
-        return np.abs(4.433 - 4.498) * u.micron
+        return np.abs(4.433 - 4.498) 
     elif band == 25:
-        return np.abs(4.482 - 4.549) * u.micron
+        return np.abs(4.482 - 4.549) 
     elif band == 26:
-        return np.abs(1.360 - 1.390) * u.micron
+        return np.abs(1.360 - 1.390) 
     elif band == 27:
-        return np.abs(6.535 - 6.895) * u.micron
+        return np.abs(6.535 - 6.895) 
     elif band == 28:
-        return np.abs(7.175 - 7.475) * u.micron
+        return np.abs(7.175 - 7.475) 
     elif band == 29:
-        return np.abs(8.400 - 8.700) * u.micron
+        return np.abs(8.400 - 8.700) 
     elif band == 30:
-        return np.abs(9.580 - 9.880) * u.micron
+        return np.abs(9.580 - 9.880) 
     elif band == 31:
-        return np.abs(10.780 - 11.280) * u.micron
+        return np.abs(10.780 - 11.280) 
     elif band == 32:
-        return np.abs(11.770 - 12.270) * u.micron
+        return np.abs(11.770 - 12.270) 
     elif band == 33:
-        return np.abs(13.185 - 13.485) * u.micron
+        return np.abs(13.185 - 13.485) 
     elif band == 34:
-        return np.abs(13.485 - 13.785) * u.micron
+        return np.abs(13.485 - 13.785) 
     elif band == 35:
-        return np.abs(13.785 - 14.085) * u.micron
+        return np.abs(13.785 - 14.085) 
     elif band == 36:
-        return np.abs(14.085 - 14.385) * u.micron
+        return np.abs(14.085 - 14.385) 
     else:
         print 'Error: Band must be an integer between 1-36.'
 
@@ -599,7 +623,7 @@ def Tb(filename,band,hi=False):
     hi : boolean
     Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
     """
-    B = rad_band(filename,band,hi)*u.sr
+    B = rad_band(filename,band,hi)
     wl = avg_wavelength(band).to(u.micron)
     Tb = (h*c/(k*wl)/(np.log(1+2.*h*c**2/(B*wl**5)))).to(u.K)
     return Tb
