@@ -1,9 +1,9 @@
 """
-Main file for defining functions to use MODIS data in Python.
+Define simple functions to analyze MODIS data using Python.
 
 Modification history
 --------------------
-Written: Michael Diamond, 8/3/16, Seattle, WA
+Written: Michael Diamond, 8/3-4/16, Seattle, WA
 """
 
 #Import libraries
@@ -288,12 +288,20 @@ def channel_width(band):
 #Characteristic colorbar set by band
 def colorbar(band):
     """
-    Set colorbar based on MODIS spectral band.
+    Get colorbar based on MODIS spectral band.
     
     Parameters
     ----------
     band : int
     Spectral band number.
+    
+    Returns
+    -------
+    String of default matplotlib to use for a given band.
+    
+    Modification history
+    --------------------
+    Written: Michael Diamond, 08/04/2016, Seattle, WA
     """
     if band == 1 or 13 <= band <= 15:
         return 'OrRd'
@@ -304,476 +312,427 @@ def colorbar(band):
     elif band == 4 or 11 <= band <= 12:
         return 'YlGn'
     else:
-        return 'Spectral_r'
+        return 'cubehelix'
 
 """
-Functions for M-D021KM calibrated radiance/reflectance files
+Class for MOD021KM/MYD021KM calibrated radiance/reflectance files from LAADS Web (https://ladsweb.nascom.nasa.gov/)
 """
 
-#File attributes
-def date_time_1b(filename):
+class MOD021KM(object):
     """
-    Get full date and time info from the level 1b filename.
+    Create object to analyze a MOD021KM/MYD021KM calibrated radiance/reflectance file from LAADS Web (https://ladsweb.nascom.nasa.gov/).
     
     Parameters
     ----------
     filename : string
-    Name of the .hdf level 1b file.
+    Name of MOD021KM/MYD021KM file to analyze.
+    
+    Methods
+    -------
+    radiance: Get array of calibrated radiances.
+    
+    reflectance: Get array of calibrated reflectances.
+    
+    brightness_temperature: Get array of brightness temperature.
+        Also, Tb() returns equivalent array.
+    
+    quick_plot: Fast plot of data. Intended as a check/first look at the data.
+    
+    Returns
+    -------
+    filename, month, time, satellite: string
+    Name of MOD021KM/MYD021KM file used, month, time of retrieval, satellite (Terra or Aqua).
+    
+    jday, year, day : int
+    Julian day, year, and calendar day.
+    
+    lon, lat : array
+    Longitude and latitude (Note: 5 km x 5 km).
+    
+    Modification history
+    --------------------
+    Written (v.1.0): Michael Diamond, 08/04/16, Seattle, WA
     """
-    date_time = 'Julian day '+filename[14:16+1]+', year '+filename[10:14]+', '+\
-            filename[18:19+1]+':'+filename[20:21+1]+' UTC'
-    return date_time
+    
+    def __init__(self,filename):
+        self.filename= filename
+        #Get geospatial information
+        self.jday = int(filename[14:16+1]) #Julian day
+        self.year = int(filename[10:14])
+        self.month = cal_day(self.jday,self.year).split()[0]
+        self.day = int(cal_day(self.jday,self.year).split()[1]) #Calendar day
+        self.time = filename[18:19+1]+':'+filename[20:21+1]+' UTC'
+        if filename[1] == 'O':
+            self.satellite = 'Terra'
+        elif filename[1] == 'Y':
+            self.satellite = 'Aqua'
+        h = SD.SD(self.filename, SDC.READ)
+        self.lon = h.select('Longitude')[:,:]
+        self.lat = h.select('Latitude')[:,:]
+        SD.SD(self.filename).end()
+        
+    #Get radiances at different bands, account for scale and offsets
+    def radiance(self,b, hi = False):
+        """
+        Get radiances from MODIS level 1b file.
+        
+        Parameters
+        ----------
+        filename : string
+        Name of the .hdf level 1b file.
+        
+        b : int
+        Band number, between 1-36.
+        
+        hi : boolean
+        Hi- or lo-gain bands for bands 13 and 14. Set to True for hi-gain. Default is lo-gain.
+        
+        Returns
+        -------
+        data : masked array
+        Array of radiance values in W/meters^2/micron/steradian. Invalid measurements are masked.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 8/4/16, Seattle, WA
+        """
+        if not type(b) == int:
+            return 'Error: Band must be an integer between 1 and 36'
+        if not 1 <= b <= 36:
+            return 'Error: Band must be an integer between 1 and 36'
+        h = SD.SD(self.filename, SDC.READ)
+        if 1 <= b <= 2:
+            ind = b-1
+            rawdata = h.select('EV_250_Aggr1km_RefSB')
+            data = rawdata[ind,:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply scale and offset
+            offset = attrs["radiance_offsets"][0][ind]
+            scale = attrs["radiance_scales"][0][ind]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max, data < valid_min)
+            data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+            return data
+        elif 3 <= b <= 7:
+            ind = b-3
+            rawdata = h.select('EV_500_Aggr1km_RefSB')
+            data = rawdata[ind,:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply scale and offset
+            offset = attrs["radiance_offsets"][0][ind]
+            scale = attrs["radiance_scales"][0][ind]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max,data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            return data
+        elif 8 <= b <= 19:
+            if 8 <= b <= 12:
+                ind = b-8
+            elif b == 13:
+                if hi == False:
+                    ind = 5
+                elif hi == True:
+                    ind = 6
+            elif b == 14:
+                if hi == False:
+                    ind = 7
+                elif hi == True:
+                    ind = 8
+            elif 15 <= b <= 19:
+                ind = b-6
+            rawdata = h.select('EV_1KM_RefSB')
+            data = rawdata[ind,:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply offset and scale
+            offset = attrs["radiance_offsets"][0][ind]
+            scale = attrs["radiance_scales"][0][ind]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max, data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            return data
+        elif 20 <= b <= 36 and b != 26:
+            if 20 <= b <= 25:
+                ind = b-20
+            elif 27 <= b <= 36:
+                ind = b-21
+            rawdata = h.select('EV_1KM_Emissive')
+            data = rawdata[ind,:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply offset and scale
+            offset = attrs["radiance_offsets"][0][ind]
+            scale = attrs["radiance_scales"][0][ind]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max, data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            return data
+        elif b == 26:
+            ind = 0
+            rawdata = h.select('EV_Band26')
+            data = rawdata[:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply offset and scale
+            offset = attrs["radiance_offsets"][0]
+            scale = attrs["radiance_scales"][0]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max, data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            return data
+        SD.SD(self.filename).end()
 
-def day_1b(filename):
-    """
-    Get Julian day from the level 1b filename.
-    
-    Parameters
-    ----------
-    filename : string
-    Name of the .hdf level 1b file.
-    """
-    day = 'Julian day '+filename[14:16+1]
-    return day
+    #Get reflectances at different bands, account for scale and offsets
+    def reflectance(self, b, hi = False):
+        """
+        Get reflectances from MODIS level 1b file.
+        
+        Parameters
+        ----------
+        filename : string
+        Name of the .hdf level 1b file.
+        
+        b : int
+        Band number, between 1-36.
+        
+        hi : boolean
+        Hi- or lo-gain bands for bands 13 and 14. Set to True for hi-gain. Default is lo-gain.
+        
+        Returns
+        -------
+        data : masked array
+        Array of relfectance values (unitless). Invalid measurements are masked.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 8/4/16, Seattle, WA
+        """
+        if not type(b) == int:
+            return 'Error: Band must be an integer between 1 and 19 or 26'
+        if not 1 <= b <= 36:
+            return 'Error: Band must be an integer between 1 and 19 or 26'
+        h = SD.SD(self.filename, SDC.READ)
+        if 1 <= b <= 2:
+            ind = b-1
+            rawdata = h.select('EV_250_Aggr1km_RefSB')
+            data = rawdata[ind,:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply offset and scale
+            offset = attrs["reflectance_offsets"][0][ind]
+            scale = attrs["reflectance_scales"][0][ind]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max,data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            return data
+        elif 3 <= b <= 7:
+            ind = b-3
+            rawdata = h.select('EV_500_Aggr1km_RefSB')
+            data = rawdata[ind,:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply offset and scale
+            offset = attrs["reflectance_offsets"][0][ind]
+            scale = attrs["reflectance_scales"][0][ind]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max,data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            return data
+        elif 8 <= b <= 19:
+            if 8 <= b <= 12:
+                ind = b-8
+            elif b == 13:
+                if hi == False:
+                    ind = 5
+                elif hi == True:
+                    ind = 6
+            elif b == 14:
+                if hi == False:
+                    ind = 7
+                elif hi == True:
+                    ind = 8
+            elif 15 <= b <= 19:
+                ind = b-6
+            rawdata = h.select('EV_1KM_RefSB')
+            data = rawdata[ind,:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply offset and scale
+            offset = attrs["reflectance_offsets"][0][ind]
+            scale = attrs["reflectance_scales"][0][ind]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max,data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            return data
+        elif 20 <= b <= 36 and b != 26:
+            return 'Error: Band must be an integer between 1 and 19 or 26'
+        elif b == 26:
+            ind = 0
+            rawdata = h.select('EV_Band26')
+            data = rawdata[:,:]
+            attrs = rawdata.attributes(full=1)
+            #Apply offset and scale
+            offset = attrs["reflectance_offsets"][0]
+            scale = attrs["reflectance_scales"][0]
+            data = (data - offset) * scale
+            #Fix invalid data
+            valid_min = attrs["valid_range"][0][0]        
+            valid_max = attrs["valid_range"][0][1]
+            _FillValue = attrs["_FillValue"][0]
+            invalid = np.logical_or(data > valid_max,data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            return data
+        SD.SD(self.filename).end()
 
-def year_1b(filename):
-    """
-    Get year from the level 1b filename.
+    #Calculate brightness temperature
+    def Tb(self,band,hi=False):
+        """
+        Convert radiances to brightness temperatures. Same as brightness_temperature().
+        
+        Parameters
+        ----------       
+        band : int
+        MODIS band, from 1 to 36.
+        
+        hi : boolean
+        Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
+        
+        Returns
+        -------
+        Tb : array
+        Array of brightness temperature values in Kelvin.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 8/4/2016, Seattle, WA
+        """
+        h = 6.62607004.E-34 #m2 kg / s
+        c = 299792458. #m/s
+        k = 1.38064852.E-23 #m2 kg s-2 K-1
+        B = self.radiance(band,hi)*10.**6 #In W/m2/m/sr
+        if 1 <= band <= 19:
+            wvl = avg_wavelength(band)/10.**9 #In m
+        elif 20 <= band <= 36:
+            wvl = avg_wavelength(band)/10.**6 #In m
+        else:
+            print 'Error: Band must be an integer between 1 and 36.'
+        Tb = (h*c/(k*wvl)/(np.log(1+2.*h*c**2/(B*wvl**5)))) #In K
+        return Tb
     
-    Parameters
-    ----------
-    filename : string
-    Name of the .hdf level 1b file.
-    """
-    year = filename[10:14]
-    return year
+    def brightness_temperature(self,band,hi=False):
+        """
+        Convert radiances to brightness temperatures. Same as Tb().
+        
+        Parameters
+        ----------       
+        band : int
+        MODIS band, from 1 to 36.
+        
+        hi : boolean
+        Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
+        
+        Returns
+        -------
+        Tb : array
+        Array of brightness temperature values in Kelvin.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 8/4/2016, Seattle, WA
+        """
+        return self.Tb(band,hi)
 
-def time_1b(filename):
-    """
-    Get swath time from the level 1b filename.
-    
-    Parameters
-    ----------
-    filename : string
-    Name of the .hdf level 1b file.
-    """
-    time = filename[18:19+1]+':'+filename[20:21+1]+' UTC'
-    return time
-
-def satellite_1b(filename):
-    """
-    Distinguish between Terra and Aqua from the level 1b filename.
-    
-    Parameters
-    ----------
-    filename : string
-    Name of the .hdf level 1b file.
-    """
-    if filename[1] == 'O':
-        satellite = 'Terra'
-    elif filename[1] == 'Y':
-        satellite = 'Aqua'
-    else:
-        print 'Error: Improper filename.'
-    return satellite
-
-#Radiances at different bands, account for radiance scale and offsets
-def rad_band(filename, b, hi = False):
-    """
-    Get radiances from MODIS level 1b file.
-    
-    Parameters
-    ----------
-    filename : string
-    Name of the .hdf level 1b file.
-    
-    b : int
-    Band number, between 1-36.
-    
-    hi : boolean
-    Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
-    """
-    if not type(b) == int:
-        return 'Error: Band must be an integer between 1 and 36'
-    if not 1 <= b <= 36:
-        return 'Error: Band must be an integer between 1 and 36'
-    h = SD.SD(filename, SDC.READ)
-    if 1 <= b <= 2:
-        ind = b-1
-        rawdata = h.select('EV_250_Aggr1km_RefSB')
-        data = rawdata[ind,:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply scale and offset
-        offset = attrs["radiance_offsets"][0][ind]
-        scale = attrs["radiance_scales"][0][ind]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max,data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data * u.W / u.m**2 / u.micron / u.sr
-    elif 3 <= b <= 7:
-        ind = b-3
-        rawdata = h.select('EV_500_Aggr1km_RefSB')
-        data = rawdata[ind,:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply scale and offset
-        offset = attrs["radiance_offsets"][0][ind]
-        scale = attrs["radiance_scales"][0][ind]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max,data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data * u.W / u.m**2 / u.micron / u.sr
-    elif 8 <= b <= 19:
-        if 8 <= b <= 12:
-            ind = b-8
-        elif b == 13:
-            if hi == False:
-                ind = 5
-            elif hi == True:
-                ind = 6
-        elif b == 14:
-            if hi == False:
-                ind = 7
-            elif hi == True:
-                ind = 8
-        elif 15 <= b <= 19:
-            ind = b-6
-        rawdata = h.select('EV_1KM_RefSB')
-        data = rawdata[ind,:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply offset and scale
-        offset = attrs["radiance_offsets"][0][ind]
-        scale = attrs["radiance_scales"][0][ind]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max, data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data * u.W / u.m**2 / u.micron / u.sr
-    elif 20 <= b <= 36 and b != 26:
-        if 20 <= b <= 25:
-            ind = b-20
-        elif 27 <= b <= 36:
-            ind = b-21
-        rawdata = h.select('EV_1KM_Emissive')
-        data = rawdata[ind,:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply offset and scale
-        offset = attrs["radiance_offsets"][0][ind]
-        scale = attrs["radiance_scales"][0][ind]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max, data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data * u.W / u.m**2 / u.micron / u.sr
-    elif b == 26:
-        ind = 0
-        rawdata = h.select('EV_Band26')
-        data = rawdata[:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply offset and scale
-        offset = attrs["radiance_offsets"][0]
-        scale = attrs["radiance_scales"][0]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max, data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data * u.W / u.m**2 / u.micron / u.sr
-    SD.SD(filename).end()
-
-#Reflectances at different bands, account for reflectance scale and offsets
-def ref_band(filename, b, hi = False):
-    """
-    Get reflectances from MODIS level 1b file.
-    
-    Parameters
-    ----------
-    filename : string
-    Name of the .hdf level 1b file.
-    
-    b : int
-    Band number, between 1-36.
-    
-    hi : boolean
-    Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
-    """
-    if not type(b) == int:
-        return 'Error: Band must be an integer between 1 and 19 or 26'
-    if not 1 <= b <= 36:
-        return 'Error: Band must be an integer between 1 and 19 or 26'
-    h = SD.SD(filename, SDC.READ)
-    if 1 <= b <= 2:
-        ind = b-1
-        rawdata = h.select('EV_250_Aggr1km_RefSB')
-        data = rawdata[ind,:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply offset and scale
-        offset = attrs["reflectance_offsets"][0][ind]
-        scale = attrs["reflectance_scales"][0][ind]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max,data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data
-    elif 3 <= b <= 7:
-        ind = b-3
-        rawdata = h.select('EV_500_Aggr1km_RefSB')
-        data = rawdata[ind,:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply offset and scale
-        offset = attrs["reflectance_offsets"][0][ind]
-        scale = attrs["reflectance_scales"][0][ind]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max,data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data
-    elif 8 <= b <= 19:
-        if 8 <= b <= 12:
-            ind = b-8
-        elif b == 13:
-            if hi == False:
-                ind = 5
-            elif hi == True:
-                ind = 6
-        elif b == 14:
-            if hi == False:
-                ind = 7
-            elif hi == True:
-                ind = 8
-        elif 15 <= b <= 19:
-            ind = b-6
-        rawdata = h.select('EV_1KM_RefSB')
-        data = rawdata[ind,:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply offset and scale
-        offset = attrs["reflectance_offsets"][0][ind]
-        scale = attrs["reflectance_scales"][0][ind]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max,data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data
-    elif 20 <= b <= 36 and b != 26:
-        return 'Error: Band must be an integer between 1 and 19 or 26'
-    elif b == 26:
-        ind = 0
-        rawdata = h.select('EV_Band26')
-        data = rawdata[:,:]
-        attrs = rawdata.attributes(full=1)
-        #Apply offset and scale
-        offset = attrs["reflectance_offsets"][0]
-        scale = attrs["reflectance_scales"][0]
-        data = (data - offset) * scale
-        #Fix invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = -attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max,data < valid_min)
-        fixed_data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
-        data = fixed_data.filled()
-        return data
-    SD.SD(filename).end()
-
-#Calculate brightness temperature
-def Tb(filename,band,hi=False):
-    """
-    Convert MODIS radiances to brightness temperatures
-    
-    Parameters
-    ----------
-    filename : string
-    Filename.
-    
-    band : int
-    MODIS band, from 1 to 36.
-    
-    hi : boolean
-    Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
-    """
-    B = rad_band(filename,band,hi)
-    wl = avg_wavelength(band).to(u.micron)
-    Tb = (h*c/(k*wl)/(np.log(1+2.*h*c**2/(B*wl**5)))).to(u.K)
-    return Tb
-    
-def brightness_temperature(filename,band,hi=False):
-    """
-    Convert MODIS radiances to brightness temperatures
-    
-    Parameters
-    ----------
-    filename : string
-    Filename.
-    
-    band : int
-    MODIS band, from 1 to 36.
-    
-    hi : boolean
-    Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
-    """
-    B = rad_band(filename,band,hi)*u.sr
-    wl = avg_wavelength(band).to(u.micron)
-    Tb = (h*c/(k*wl)/(np.log(1+2.*h*c**2/(B*wl**5)))).to(u.K)
-    return Tb
-
-#Test map for single file
-def testplot_local(filename,band,kind='rad',hi=False):
-    """
-    Plot data for a single M-D021KM file.
-    
-    Parameters
-    ----------
-    name : string
-    Filename.
-    
-    band : int
-    MODIS band, from 1 to 36.
-    
-    kind : string
-    Use 'rad' for radiances or 'ref' for reflectances. Default is radiance.
-    
-    hi : boolean
-    Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
-    """
-    if not type(band) == int or band > 36:
-        print 'Error: Band must be an integer from 1-36'
-        return
-    if not type(filename) == str:
-        print 'Filename must be a string.'
-        return
-    if kind != 'rad' and kind != 'ref':
-        print "Error: Kind must be 'rad' for radiances or 'ref' for reflectances"
-        return
-    if kind == 'ref' and 20 <= band <= 25:
-        print 'Error: Reflectance bands must be integers between 1-19 or 26'
-        return
-    if kind == 'ref' and 27 <= band <= 36:
-        print 'Error: Reflectance bands must be integers between 1-19 or 26'
-        return
-    else:
+    #Quickly plot data as check/first pass
+    def quick_plot(self,band,hi=False,data='radiance',projection='merc'):
+        """
+        Quick plot data for a single MOD021KM or MYD021KM file. Intended as a check or first pass at data.
+        
+        Parameters
+        ----------
+        band : int
+        MODIS band, from 1 to 36.
+        
+        hi : boolean
+        Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
+        
+        data : string
+        Use 'rad' for radiances or 'ref' for reflectances. Default is radiance.
+        
+        projection : string
+        """
+        if not type(band) == int or band > 36:
+            print 'Error: Band must be an integer from 1-36'
+            return
+        plt.figure()
         plt.clf()
-        size = 15
-        lon = SD.SD(filename, SDC.READ).select('Longitude')[:,:]
-        lat = SD.SD(filename, SDC.READ).select('Latitude')[:,:]
-        SD.SD(filename).end()
-        max_lon = lon.max()
-        max_lat = lat.max()
-        min_lon = lon.min()
-        min_lat = lat.min()
-        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
-        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        font = 'Arial'
+        size = 20
+        max_lon = self.lon.max()
+        max_lat = self.lat.max()
+        min_lon = self.lon.min()
+        min_lat = self.lat.min()
+        if projection == 'merc':
+            m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+            urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        elif projection == 'global':
+            m = Basemap(lon_0=0,projection='kav7',resolution='c')
+        elif projection == 'satellite':
+            m = Basemap(projection='nsper',lon_0=self.lon.mean(),lat_0=self.lat.mean(),\
+            resolution='l',satellite_height=705000)
+        else:
+            print "Error: Projection must be 'merc', 'global', or 'satellite'."
+            return
         m.drawcoastlines()
         m.drawcountries()
         m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
         m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
-        if kind == 'rad':
-            m.pcolormesh(lon[:,:],lat[:,:],rad_band(filename,band,hi)[::5,::5],\
-            shading='gouraud',cmap=colorbar(band),latlon=True,vmin=0)
-            cbar = m.colorbar()
-            cbar.set_label('Radiance (W/m^2/micron/sr)',fontname='Arial',fontsize=size)
-        elif kind == 'ref':
-            m.pcolormesh(lon[:,:],lat[:,:],ref_band(filename,band,hi)[::5,::5],\
-            shading='gouraud',cmap=colorbar(band),vmin=0,vmax=1,latlon=True)
-            cbar = m.colorbar()
-            cbar.set_label('Reflectance (unitless)',fontname='Arial',fontsize=size)
-        plt.title('Band %s for %s, %s satellite' % \
-        (band,date_time_1b(filename),satellite_1b(filename)),fontname='Arial',fontsize=size+5)
-
-#Test a list of files on a global projection
-def testplot_global(filenames,band,kind='rad',hi=False):
-    """
-    Plot data for a list of M_D021KM files
-    
-    Parameters
-    ----------
-    filenames : list
-    List of filenames in string format, chronological order.
-    
-    band : int
-    MODIS band, from 1 to 36.
-    
-    kind : string
-    Use 'rad' for radiances or 'ref' for reflectances. Default is radiance.
-    
-    hi : boolean
-    Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
-    """
-    if not type(band) == int or band > 36:
-        print 'Error: Band must be an integer from 1-36'
-        return
-    if not type(filenames[0]) == str:
-        print 'Filename must be a string.'
-        return
-    if kind != 'rad' and kind != 'ref':
-        print "Error: Kind must be 'rad' for radiances or 'ref' for reflectances"
-        return
-    if kind == 'ref' and 20 <= band <= 25:
-        print 'Error: Reflectance bands must be integers between 1-19 or 26'
-        return
-    if kind == 'ref' and 27 <= band <= 36:
-        print 'Error: Reflectance bands must be integers between 1-19 or 26'
-        return
-    else:
-        plt.clf()
-        size = 15
-        m = Basemap(lon_0=0,projection='kav7',resolution='c')
-        m.drawcoastlines()
-        m.drawcountries()
-        m.drawparallels(np.arange(-180,180,30),labels=[1,0,0,0])
-        m.drawmeridians(np.arange(0,360,30),labels=[1,1,0,1])
-        if kind == 'rad':
-            for filename in filenames:
-                lon = SD.SD(filename, SDC.READ).select('Longitude')[:,:]
-                lat = SD.SD(filename, SDC.READ).select('Latitude')[:,:]
-                m.pcolormesh(lon[:,:],lat[:,:],rad_band(filename,band,hi)[::5,::5],\
-                shading='gouraud',cmap=colorbar(band),latlon=True,vmin=0)
-                SD.SD(filename).end()
-            cbar = m.colorbar()
-            cbar.set_label('Radiance (W/m^2/micron/sr)',fontname='Arial',fontsize=size)
-        elif kind == 'ref':
-            for filename in filenames:
-                lon = SD.SD(filename, SDC.READ).select('Longitude')[:,:]
-                lat = SD.SD(filename, SDC.READ).select('Latitude')[:,:]
-                m.pcolormesh(lon[:,:],lat[:,:],ref_band(filename,band,hi)[::5,::5],\
-                shading='gouraud',cmap=colorbar(band),vmin=0,vmax=1,latlon=True)
-                SD.SD(filename).end()
-            cbar = m.colorbar()
-            cbar.set_label('Reflectance (unitless)',fontname='Arial',fontsize=size)
-        plt.title('Band %s for %s, %s, from %s to %s, %s satellite' % \
-        (band,day_1b(filenames[0]),year_1b(filenames[0]),time_1b(filenames[0]),time_1b(filenames[-1]),\
-        satellite_1b(filenames[0])),fontname='Arial',fontsize=size+5)
+        if data == 'radiance': 
+            d = self.radiance(band,hi)[::5,::5]
+            vmin = 0
+            vmax = d.max()
+        elif data == 'reflectance': 
+            d = self.reflectance(band,hi)[::5,::5]
+            vmin = 0
+            vmax = 1
+        elif data == 'brightness temperature' or data == 'Tb':
+            d = self.Tb(band,hi)[::5,::5]
+            vmin = d.min()
+            vmax = d.max()
+        m.pcolormesh(self.lon,self.lat,d[:np.shape(self.lon)[0],:np.shape(self.lat)[1]],\
+        shading='gouraud',cmap=colorbar(band),latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar()
+        cbar.ax.tick_params(labelsize=size-4) 
+        label = {'radiance' : 'Radiance [W/m^2/micron/sr]', 'reflectance' : 'Reflectance [unitless]',\
+        'brightness temperature' : 'Brightness temperature [K]', 'Tb' : 'Brightness temperature [K]'}
+        cbar.set_label(label['%s' % data],fontname=font,fontsize=size-2)
+        plt.title('Band %s %s for %s %s, %s from %s' % \
+        (band,data,self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
 
 """
 Functions for M-D06_L2 files
