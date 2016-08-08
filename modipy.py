@@ -390,7 +390,7 @@ class MOD021KM(object):
         Returns
         -------
         data : masked array
-        Array of radiance values in W/meters^2/micron/steradian. Invalid measurements are masked.
+        1 km x 1 km array of radiance values in W/meters^2/micron/steradian. Invalid measurements are masked.
         
         Modification history
         --------------------
@@ -518,7 +518,7 @@ class MOD021KM(object):
         Returns
         -------
         data : masked array
-        Array of relfectance values (unitless). Invalid measurements are masked.
+        1 km x 1 km array of relfectance values (unitless). Invalid measurements are masked.
         
         Modification history
         --------------------
@@ -626,7 +626,7 @@ class MOD021KM(object):
         Returns
         -------
         Tb : array
-        Array of brightness temperature values in Kelvin.
+        1 km x 1 km array of brightness temperature values in Kelvin.
         
         Modification history
         --------------------
@@ -660,7 +660,7 @@ class MOD021KM(object):
         Returns
         -------
         Tb : array
-        Array of brightness temperature values in Kelvin.
+        1 km x 1 km array of brightness temperature values in Kelvin.
         
         Modification history
         --------------------
@@ -685,6 +685,15 @@ class MOD021KM(object):
         Use 'rad' for radiances or 'ref' for reflectances. Default is radiance.
         
         projection : string
+        Use 'merc' for mercator, 'global' for global plot (kav7), 'nsper' for Terra/Aqua's eye view.
+        
+        Returns
+        -------
+        Plot of data subsampled to 5 km x 5 km resolution.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 8/4/2016, Seattle, WA
         """
         if not type(band) == int or band > 36:
             print 'Error: Band must be an integer from 1-36'
