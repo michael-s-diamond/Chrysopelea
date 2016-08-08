@@ -1,5 +1,9 @@
 """
-Define basic functions for using SEVIRI data
+Define basic functions for using SEVIRI data provided by LARC for ORACLES. Not general.
+
+Modification history
+--------------------
+Written (v.1.0): Michael Diamond, 08/06/2016, Seattle, WA
 """
 
 #Import libraries
@@ -325,20 +329,12 @@ class CR(object):
         self.year,self.time),fontsize=font+2)
         plt.show()
 
-#Temporary
-import os
-os.chdir('/Users/michaeldiamond/Documents/ORACLES/SEVIRI')
-
-C1f = 'MET10.2016216.1330.03km.C01.nc'
-C2f = 'MET10.2016216.1330.03km.C02.nc'
-cr = CR(C1f,C2f)
-
 """
 Microphysics blend
 """
 class blend(object):
     """
-    Caculate C1:C2 color ratio from SEVERI data.
+    Create blend of channels 2, 4 and 9 
     
     Parameters
     ----------
