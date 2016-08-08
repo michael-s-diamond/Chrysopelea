@@ -297,7 +297,7 @@ def colorbar(band):
     
     Returns
     -------
-    String of default matplotlib to use for a given band.
+    String of default matplotlib cmap to use for a given band.
     
     Modification history
     --------------------
