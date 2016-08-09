@@ -744,12 +744,12 @@ class MOD021KM(object):
         (band,data,self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
 
 """
-Functions for M-D06_L2 files
+Functions for MOD06_L2/MYD06_L2 files downloaded from from LAADS Web (https://ladsweb.nascom.nasa.gov/).
 """
 
-class cloud(object):
+class MOD06(object):
     """
-    Calculate bias in MODIS effective radius data from M-D06_L2 cloud file.
+    Create object to analyze from MOD06_L2/MYD06_L2 cloud file downloaded from LAADS Web (https://ladsweb.nascom.nasa.gov/).
     
     Parameters
     ----------
@@ -1167,3 +1167,469 @@ class cloud(object):
         (self.satellite,cal_day(int(self.day),int(self.year)),self.year,self.time))
         plt.show()
 
+"""
+Class for NRT MOD06_L2/MYD06_L2 files downloaded from from LANCE (https://lance.modaps.eosdis.nasa.gov/data_products/).
+"""
+
+class nrtMOD06(object):
+    """
+    Create object to analyze from MOD06_L2/MYD06_L2 cloud file downloaded from LANCE (https://lance.modaps.eosdis.nasa.gov/data_products/).
+    
+    ***Created for ORACLES campaign (https://espo.nasa.gov/home/oracles/)***
+    
+    NOTE: LANCE uses Collection 5, not Collection 6!
+    
+    Parameters
+    ----------
+    cfile : string
+    M-D06_L2 cloud file.
+    
+    Methods
+    -------
+    
+    
+    Returns
+    -------
+    day, year, time, satellite : int, int, int, float
+    Satellite properties.
+    
+    lat, lon : array, array
+    5 km x 5 km latitude and longitude arrays.
+    
+    Re163 : array
+    Effective radius calculated using the 1.63 micron channel.
+    
+    Re213 : array
+    Effective radius calculated using the 2.13 micron channel.
+    
+    delta_Re : array
+    Difference between the 2.13 micron and 1.63 micron channels.
+    
+    del_Re : array
+    Difference between the 2.13 micron and 1.63 micron channels.
+    
+    R_Re : array
+    Ratio of 2.13 micron over 1.63 micron channels.
+    
+    median : array
+    Median effective radius bias.
+    
+    mean : array
+    Mean effective radius bias.
+    
+    tau163 : array
+    Cloud optical thickness calculated using the 1.63 micron channel.
+    
+    tau213 : array
+    Cloud optical thickness calculated using the 2.13 micron channel.
+    
+    delta_tau : array
+    Difference between the 2.13 micron and 1.63 micron channels.
+    
+    del_tau : array
+    Difference between the 2.13 micron and 1.63 micron channels.
+    
+    R_tau : array
+    Ratio of 2.13 micron over 1.63 micron channels.
+    
+    tau_median : array
+    Median effective radius bias.
+    
+    tau_mean : array
+    Mean effective radius bias.
+    
+    plot_Re : figure
+    Figure showing the above arrays for the single file.
+    
+    plot_tau : figure
+    Figure showing the above arrays for the single file.
+    
+    view_Re : figure
+    View from satellite (effective radius bias).
+    
+    view_tau : figure
+    View from satellite (cloud optical thickness bias).
+    
+    Modification history
+    --------------------
+    Written: Michael Diamond, 08/08-09/2016, Seattle, WA
+    """
+    
+    def __init__(self,cfile):
+        self.jday = cfile[14:16+1]
+        self.year = cfile[10:13+1]
+    	self.month = cal_day(self.jday,self.year).split()[0]
+    	self.day = int(cal_day(self.jday,self.year).split()[1])
+    	self.time = cfile[18:21+1]
+        if cfile[1] == 'Y':
+            self.satellite = 'Aqua'
+        elif cfile[1] == 'O':
+            self.satellite = 'Terra'
+        c = SD.SD(cfile, SDC.READ)
+        #
+        #Effective radius
+        #
+        data = c.select('Cloud_Effective_Radius')[:]
+        attrs = c.select('Cloud_Effective_Radius').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.ref = scale*(data - offset)
+        
+        #
+        #Effective radius uncertainty
+        #
+        data = c.select('Cloud_Effective_Radius_Uncertainty')[:]
+        attrs = c.select('Cloud_Effective_Radius_Uncertainty').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.ref_unc = scale*(data - offset)
+        
+        
+        
+        
+        
+        self.tau163 = c.select('Cloud_Optical_Thickness_16')[:]
+        attrs_tau163 = c.select('Cloud_Optical_Thickness_16').attributes(full=1)
+        scale_tau163 = attrs_tau163['scale_factor'][0]
+        offset_tau163 = attrs_tau163['add_offset'][0]
+        
+        self.tau163 = scale_tau163*(self.tau163 - offset_tau163)
+        self.tau163 = ma.MaskedArray(self.tau163, mask = self.tau163 < 0, fill_value = 0)
+        
+        
+        #
+        #2.13 micron band
+        #
+        self.Re213 = c.select('Cloud_Effective_Radius')[:]
+        attrs_213 = c.select('Cloud_Effective_Radius').attributes(full=1)
+        scale_213 = attrs_213['scale_factor'][0]
+        offset_213 = attrs_213['add_offset'][0]
+        self.tau213 = c.select('Cloud_Optical_Thickness')[:]
+        attrs_tau213 = c.select('Cloud_Optical_Thickness').attributes(full=1)
+        scale_tau213 = attrs_tau213['scale_factor'][0]
+        offset_tau213 = attrs_tau213['add_offset'][0]
+        #Fixer-upper
+        self.Re213 = scale_213*(self.Re213 - offset_213)
+        self.Re213 = ma.MaskedArray(self.Re213, mask = self.Re213 < 0, fill_value = 0)
+        self.tau213 = scale_tau213*(self.tau213 - offset_tau213)
+        self.tau213 = ma.MaskedArray(self.tau213, mask = self.tau213 < 0, fill_value = 0)
+        
+        #
+        #3.7 micron band
+        #
+        self.Re37 = c.select('Cloud_Effective_Radius_37')[:]
+        attrs_37 = c.select('Cloud_Effective_Radius_37').attributes(full=1)
+        scale_37 = attrs_37['scale_factor'][0]
+        offset_37 = attrs_37['add_offset'][0]
+        self.tau37 = c.select('Cloud_Optical_Thickness_37')[:]
+        attrs_tau37 = c.select('Cloud_Optical_Thickness_37').attributes(full=1)
+        scale_tau37 = attrs_tau37['scale_factor'][0]
+        offset_tau37 = attrs_tau37['add_offset'][0]
+        #Fixer-upper
+        self.Re37 = scale_37*(self.Re37 - offset_37)
+        self.Re37 = ma.MaskedArray(self.Re37, mask = self.Re37 < 0, fill_value = 0)
+        self.tau37 = scale_tau37*(self.tau37 - offset_tau37)
+        self.tau37 = ma.MaskedArray(self.tau37, mask = self.tau37 < 0, fill_value = 0)
+        
+        #
+        #Effective radius bias
+        #
+        self.delta_Re = self.Re213 - self.Re163
+        self.del_Re = self.delta_Re/self.Re213
+        self.R_Re = self.Re213/self.Re163
+        #Create blocks with median values
+        meds = np.zeros(np.shape(self.delta_Re))
+        meds_del = np.zeros(np.shape(self.del_Re))
+        meds_R = np.zeros(np.shape(self.R_Re))
+        means = np.zeros(np.shape(self.delta_Re))
+        for i in range(10):
+            for j in range(10):
+                #Pixels to use in this iteration
+                pix = self.delta_Re[i*203:(i+1)*230,j*135:(j+1)*135]
+                pix_del = self.del_Re[i*203:(i+1)*230,j*135:(j+1)*135]
+                pix_R = self.R_Re[i*203:(i+1)*230,j*135:(j+1)*135]
+                meds[i*203:(i+1)*230,j*135:(j+1)*135] = ma.median(pix)
+                meds_del[i*203:(i+1)*230,j*135:(j+1)*135] = ma.median(pix_del)
+                meds_R[i*203:(i+1)*230,j*135:(j+1)*135] = ma.median(pix_R)
+                means[i*203:(i+1)*230,j*135:(j+1)*135] = ma.mean(pix)
+        #Whatever's left
+        finpix = self.delta_Re[10*203:,1350:]
+        finpix_del = self.del_Re[10*203:,1350:]
+        finpix_R = self.R_Re[10*203:,1350:]
+        finlistpix = np.reshape(finpix,np.shape(finpix)[0]*np.shape(finpix)[1])
+        meds[2030:,1350:] = ma.median(finlistpix)
+        meds_del[2030:,1350:] = ma.median(finpix_del)
+        meds_R[2030:,1350:] = ma.median(finpix_R)
+        means[2030:,1350:] = ma.mean(finlistpix)
+        meds = ma.MaskedArray(meds, mask = self.Re213 < 0, fill_value = 0)
+        median = meds[::5,::5]
+        meds_del = ma.MaskedArray(meds_del, mask = self.Re213 < 0, fill_value = 0)
+        median_del = meds_del[::5,::5]
+        meds_R = ma.MaskedArray(meds_R, mask = self.Re213 < 0, fill_value = 0)
+        median_R = meds_R[::5,::5]
+        means = ma.MaskedArray(means, mask = self.Re213 < 0, fill_value = 0)
+        mean = means[::5,::5]
+        self.median = median
+        self.median_del = median_del
+        self.median_R = median_R
+        self.mean = mean
+        #
+        #Cloud optical thickness bias
+        #
+        self.delta_tau = self.tau213 - self.tau163
+        self.del_tau = (self.tau213 - self.tau163)/self.tau213
+        self.R_tau = self.tau213 / self.tau163
+        #Create blocks with median values
+        tau_meds = np.zeros(np.shape(self.delta_tau))
+        tau_meds_del = np.zeros(np.shape(self.del_tau))
+        tau_meds_R = np.zeros(np.shape(self.R_tau))
+        tau_means = np.zeros(np.shape(self.delta_tau))
+        for i in range(10):
+            for j in range(10):
+                #Pixels to use in this iteration
+                pix = self.delta_tau[i*203:(i+1)*230,j*135:(j+1)*135]
+                pix_del = self.del_tau[i*203:(i+1)*230,j*135:(j+1)*135]
+                pix_R = self.R_tau[i*203:(i+1)*230,j*135:(j+1)*135]
+                tau_meds[i*203:(i+1)*230,j*135:(j+1)*135] = ma.median(pix)
+                tau_meds_del[i*203:(i+1)*230,j*135:(j+1)*135] = ma.median(pix_del)
+                tau_meds_R[i*203:(i+1)*230,j*135:(j+1)*135] = ma.median(pix_R)
+                tau_means[i*203:(i+1)*230,j*135:(j+1)*135] = ma.mean(pix)
+        #Whatever's left
+        finpix = self.delta_tau[10*203:,1350:]
+        finpix_del = self.del_tau[10*203:,1350:]
+        finpix_R = self.R_tau[10*203:,1350:]
+        finlistpix = np.reshape(finpix,np.shape(finpix)[0]*np.shape(finpix)[1])
+        tau_meds[2030:,1350:] = ma.median(finlistpix)
+        tau_meds_del[2030:,1350:] = ma.median(finpix_del)
+        tau_meds_R[2030:,1350:] = ma.median(finpix_R)
+        tau_means[2030:,1350:] = ma.mean(finlistpix)
+        tau_meds = ma.MaskedArray(tau_meds, mask = self.tau213 < 0, fill_value = 0)
+        tau_median = tau_meds[::5,::5]
+        tau_meds_del = ma.MaskedArray(tau_meds_del, mask = self.tau213 < 0, fill_value = 0)
+        tau_median_del = tau_meds_del[::5,::5]
+        tau_meds_R = ma.MaskedArray(tau_meds_R, mask = self.tau213 < 0, fill_value = 0)
+        tau_median_R = tau_meds_R[::5,::5]
+        tau_means = ma.MaskedArray(tau_means, mask = self.Re213 < 0, fill_value = 0)
+        tau_mean = tau_means[::5,::5]
+        self.tau_median = tau_median
+        self.tau_median_del = tau_median_del
+        self.tau_median_R = tau_median_R
+        self.tau_mean = tau_mean
+        #For plotting
+        self.lat = c.select('Latitude')[:,:]
+        self.lon = c.select('Longitude')[:,:]
+        c.end()
+    
+    def plot_Re(self):
+        """
+        Make plot showing all the effective radius variables
+        """
+        plt.clf()
+        lat = self.lat
+        lon = self.lon
+        Re_163 = self.Re163
+        Re_213 = self.Re213
+        delta_Re = self.delta_Re
+        max_lon = lon.max()
+        max_lat = lat.max()
+        min_lon = lon.min()
+        min_lat = lat.min()
+        #Re 1.63 micron band
+        plt.subplot(2,3,1)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Julian day %s, %s' % (self.day, self.year),bbox=dict(facecolor='w', alpha=1))
+        d163 = Re_163[::5,::5]
+        m.pcolormesh(lon,lat,d163[:,:270],shading='gouraud',cmap='Spectral_r',latlon=True)
+        cbar = m.colorbar()
+        cbar.set_label('Effective radius (%sm)' % (u"\u03BC"))
+        plt.title('A) Effective radius (1.63 %sm/860 nm)' % (u"\u03BC"))
+        #Difference
+        plt.subplot(2,3,2)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[0,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Time: %s' % (self.time),bbox=dict(facecolor='w', alpha=1))
+        dRe = delta_Re[::5,::5]
+        m.pcolormesh(lon,lat,dRe[:,:270],shading='gouraud',cmap='RdYlBu_r',latlon=True,vmin=-7,vmax=7)
+        cbar = m.colorbar()
+        cbar.set_label('Difference (%sm)' % (u"\u03BC"))
+        plt.title('B) Difference, R(1.63 %sm) - R(2.13 %sm)' % (u"\u03BC",u"\u03BC"))
+        #Re 2.13 micron band
+        plt.subplot(2,3,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[0,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Satellite: %s' % (self.satellite),bbox=dict(facecolor='w', alpha=1))
+        d213 = Re_213[::5,::5]
+        m.pcolormesh(lon,lat,d213[:,:270],shading='gouraud',cmap='Spectral_r',latlon=True)
+        cbar = m.colorbar()
+        cbar.set_label('Effective radius (%sm)' % (u"\u03BC"))
+        plt.title('C) Effective radius (2.13 %sm/860 nm)' % (u"\u03BC"))
+        #Plot medians
+        plt.subplot(2,2,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        m.pcolormesh(lon,lat,self.median[:np.shape(lat)[0],:np.shape(lat)[1]],shading='gouraud',cmap='YlGnBu_r',latlon=True,vmin=-5,vmax=0)
+        cbar = m.colorbar()
+        cbar.set_label('Bias (%sm)' % (u"\u03BC"))
+        plt.title('D) Median bias')
+        plt.show()
+        #Plot means
+        plt.subplot(2,2,4)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        m.pcolormesh(lon,lat,self.mean[:np.shape(lat)[0],:np.shape(lat)[1]],shading='gouraud',cmap='YlGnBu_r',latlon=True,vmin=-5,vmax=0)
+        cbar = m.colorbar()
+        cbar.set_label('Bias (%sm)' % (u"\u03BC"))
+        plt.title('E) Mean bias')
+        plt.show()
+    
+    def plot_tau(self):
+        """
+        Make plot showing all the cloud optical thickness variables
+        """
+        plt.clf()
+        lat = self.lat
+        lon = self.lon
+        tau_163 = self.tau163
+        tau_213 = self.tau213
+        delta_tau = self.delta_tau
+        max_lon = lon.max()
+        max_lat = lat.max()
+        min_lon = lon.min()
+        min_lat = lat.min()
+        #Tau 1.63 micron band
+        plt.subplot(2,3,1)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Julian day %s, %s' % (self.day, self.year),bbox=dict(facecolor='w', alpha=1))
+        d163 = tau_163[::5,::5]
+        m.pcolormesh(lon,lat,d163[:,:270],shading='gouraud',cmap='Spectral_r',latlon=True)
+        cbar = m.colorbar()
+        cbar.set_label('Cloud optical thickness')
+        plt.title('A) 1.63 %sm/860 nm channels' % (u"\u03BC"))
+        #Difference
+        plt.subplot(2,3,2)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[0,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Time: %s' % (self.time),bbox=dict(facecolor='w', alpha=1))
+        dtau = delta_tau[::5,::5]
+        m.pcolormesh(lon,lat,dtau[:,:270],shading='gouraud',cmap='RdYlBu_r',latlon=True,vmin=-1,vmax=1)
+        cbar = m.colorbar()
+        cbar.set_label('Difference')
+        plt.title('B) Difference, 1.63 %sm - 2.13 %sm' % (u"\u03BC",u"\u03BC"))
+        #Tau 2.13 micron band
+        plt.subplot(2,3,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[0,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Satellite: %s' % (self.satellite),bbox=dict(facecolor='w', alpha=1))
+        d213 = tau_213[::5,::5]
+        m.pcolormesh(lon,lat,d213[:,:270],shading='gouraud',cmap='Spectral_r',latlon=True)
+        cbar = m.colorbar()
+        cbar.set_label('Cloud optical thickness')
+        plt.title('C) 2.13 %sm/860 nm channels' % (u"\u03BC"))
+        #Plot medians
+        plt.subplot(2,2,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        m.pcolormesh(lon,lat,self.tau_median[:np.shape(lat)[0],:np.shape(lat)[1]],shading='gouraud',cmap='RdYlBu_r',latlon=True,vmin=-.5,vmax=.5)
+        cbar = m.colorbar()
+        cbar.set_label('Bias')
+        plt.title('D) Median bias')
+        plt.show()
+        #Plot means
+        plt.subplot(2,2,4)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        m.pcolormesh(lon,lat,self.tau_mean[:np.shape(lat)[0],:np.shape(lat)[1]],shading='gouraud',cmap='RdYlBu_r',latlon=True,vmin=-.5,vmax=.5)
+        cbar = m.colorbar()
+        cbar.set_label('Bias')
+        plt.title('E) Mean bias')
+        plt.show()
+            
+    def view_Re(self):
+        """
+        Plot the view as seen from the satellite for Re bias
+        """
+        plt.clf()
+        m = Basemap(projection='nsper',lon_0=self.lon.mean(),lat_0=self.lat.mean(),resolution='l',satellite_height=705000)
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10))
+        m.drawmeridians(np.arange(0,360,10))
+        m.pcolormesh(self.lon,self.lat,self.median[:np.shape(self.lat)[0],:np.shape(self.lat)[1]],shading='gouraud',cmap='YlGnBu_r',latlon=True,vmin=-5,vmax=0)
+        cbar = m.colorbar()
+        cbar.set_label('Bias (%sm)' % (u"\u03BC"))
+        plt.title('View from %s (%s, %s, at %s)' % \
+        (self.satellite,cal_day(int(self.day),int(self.year)),self.year,self.time))
+        plt.show()
