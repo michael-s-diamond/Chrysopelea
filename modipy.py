@@ -3,7 +3,10 @@ Define simple functions to analyze MODIS data using Python.
 
 Modification history
 --------------------
-Written: Michael Diamond, 8/3-4/16, Seattle, WA
+Written (v.0.0): Michael Diamond, 8/3-4/2016, Seattle, WA
+Modified (v.0.1): Michael Diamond, 8/8/2016, Seattle, WA
+    -Fixed bugs in MOD021KM object
+    -Created NRT MOD06 object for ORACLES campaign
 """
 
 #Import libraries
@@ -97,6 +100,94 @@ def cal_day(julian_day,year):
     else:
         return 'Error: Inputs should be integers.'
     return cal_day
+
+#Dictionary linking string month to numeric value
+month_num = {'January' : 1, 'February' : 2, 'March' : 3, 'April' : 4, 'May' : 5, 'June' : 6,\
+    'July' : 7, 'August' : 8, 'September' : 9, 'October' : 10, 'November' : 11, 'December' : 12}
+
+#Convert calendar day to Julian day
+def julian_day(month, day, year):
+    """
+    Convert calendar day to julian day.
+    
+    Parameters
+    ----------
+    month : int
+    Numeric month (e.g., January = 1).
+    
+    day : int
+    Day of the month.
+    
+    year : int
+    Full year (e.g., 2016).
+    
+    Modification history
+    --------------------
+    Written: Michael Diamond, 08/08/2016, Seattle, WA
+    """
+    if not 1 <= month <= 12: return 'Error: Month must be an integer between 1 and 12.'
+    if not 1 <= day <= 31: return 'Error: Day must be an integer between 1 and 31'
+    if day > 28:
+        if month == 2:
+            if year%4 != 0: return 'Error: February %s only has 28 days.' % year
+            elif year%4 == 0:
+                if day > 29: return 'Error: February %s only has 29 days.' % year
+        if day > 30:
+            valid_months = [1,3,4,7,8,10,12]
+            if month not in valid_months: return 'Error: This month does not have 31 days.'
+    #Non-leap year
+    if year%4 != 0:
+        if month == 1:
+            offset = 0
+        elif month == 2:
+            offset = 32-1
+        elif month == 3:
+            offset = 60-1
+        elif month == 4:
+            offset = 91-1
+        elif month == 5:
+            offset = 121-1
+        elif month == 6:
+            offset = 152-1
+        elif month == 7:
+            offset = 182-1
+        elif month == 8:
+            offset = 213-1
+        elif month == 9:
+            offset = 244-1
+        elif month == 10:
+            offset = 274-1
+        elif month == 11:
+            offset = 305-1
+        elif month == 12:
+            offset = 335-1
+    #Leap year
+    elif year%4 == 0:
+        if month == 1:
+            offset = 0
+        elif month == 2:
+            offset = 32-1
+        elif month == 3:
+            offset = 61-1
+        elif month == 4:
+            offset = 92-1
+        elif month == 5:
+            offset = 122-1
+        elif month == 6:
+            offset = 153-1
+        elif month == 7:
+            offset = 183-1
+        elif month == 8:
+            offset = 214-1
+        elif month == 9:
+            offset = 245-1
+        elif month == 10:
+            offset = 275-1
+        elif month == 11:
+            offset = 306-1
+        elif month == 12:
+            offset = 336-1
+    return offset + day
 
 #Average wavelength and wavelength spread for each spectral band
 def avg_wavelength(band):
@@ -1274,7 +1365,9 @@ class nrtMOD06(object):
     """
     
     def __init__(self,cfile):
-        #Get geolocation data and date
+        #
+        ###Get geolocation data and date
+        #
         self.jday = cfile[14:16+1]
         self.year = cfile[10:13+1]
     	self.month = cal_day(self.jday,self.year).split()[0]
@@ -1285,9 +1378,11 @@ class nrtMOD06(object):
         elif cfile[1] == 'O':
             self.satellite = 'Terra'
         c = SD.SD(cfile, SDC.READ)
-        self.lat = 
+        self.lon = c.select('Longitude')[:,:]
+        self.lat = c.select('Latitude')[:,:]
+        
         #
-        #Effective radius
+        ###Effective radius
         #
         data = c.select('Cloud_Effective_Radius')[:]
         attrs = c.select('Cloud_Effective_Radius').attributes(full=1)
@@ -1303,7 +1398,7 @@ class nrtMOD06(object):
         self.ref = scale*(data - offset)
         
         #
-        #Effective radius uncertainty
+        ###Effective radius uncertainty
         #
         data = c.select('Cloud_Effective_Radius_Uncertainty')[:]
         attrs = c.select('Cloud_Effective_Radius_Uncertainty').attributes(full=1)
@@ -1318,9 +1413,245 @@ class nrtMOD06(object):
         #Fixer-upper
         self.ref_unc = scale*(data - offset)
         
+        #
+        ###Effective radius (1621)
+        #
+        data = c.select('Cloud_Effective_Radius_1621')[:]
+        attrs = c.select('Cloud_Effective_Radius_1621').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.ref1621 = scale*(data - offset)
         
+        #
+        ###Effective radius uncertainty (1621)
+        #
+        data = c.select('Cloud_Effective_Radius_Uncertainty_1621')[:]
+        attrs = c.select('Cloud_Effective_Radius_Uncertainty_1621').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.ref1621_unc = scale*(data - offset)
         
+        #
+        ###Cloud fraction
+        #
+        data = c.select('Cloud_Fraction')[:]
+        attrs = c.select('Cloud_Fraction').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.cf = scale*(data - offset)
         
+        #
+        ###Cloud optical thickness
+        #
+        data = c.select('Cloud_Optical_Thickness')[:]
+        attrs = c.select('Cloud_Optical_Thickness').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.COT = scale*(data - offset)
+        
+        #
+        ###Cloud optical thickness uncertainty
+        #
+        data = c.select('Cloud_Optical_Thickness_Uncertainty')[:]
+        attrs = c.select('Cloud_Optical_Thickness_Uncertainty').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.COT_unc = scale*(data - offset)
+        
+        #
+        ###Cloud optical thickness (1621)
+        #
+        data = c.select('Cloud_Optical_Thickness_1621')[:]
+        attrs = c.select('Cloud_Optical_Thickness_1621').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.COT1621 = scale*(data - offset)
+        
+        #
+        ###Cloud optical thickness uncertainty (1621)
+        #
+        data = c.select('Cloud_Optical_Thickness_Uncertainty_1621')[:]
+        attrs = c.select('Cloud_Optical_Thickness_Uncertainty_1621').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.COT1621_unc = scale*(data - offset)
+        
+        #
+        ###Cloud phase (optical properties)
+        #
+        data = c.select('Cloud_Phase_Optical_Properties')[:]
+        attrs = c.select('Cloud_Phase_Optical_Properties').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.phase = scale*(data - offset)
+        
+        #
+        ###Cloud top pressure
+        #
+        data = c.select('Cloud_Top_Pressure')[:]
+        attrs = c.select('Cloud_Top_Pressure').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.CTP = scale*(data - offset)
+        
+        #
+        ###Cloud top temperature
+        #
+        data = c.select('Cloud_Top_Temperature')[:]
+        attrs = c.select('Cloud_Top_Temperature').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.CTT = scale*(data - offset)
+        
+        #
+        ###Cloud water path
+        #
+        data = c.select('Cloud_Water_Path')[:]
+        attrs = c.select('Cloud_Water_Path').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.CWP = scale*(data - offset)
+        
+        #
+        ###Cloud water path uncertainty
+        #
+        data = c.select('Cloud_Water_Path_Uncertainty')[:]
+        attrs = c.select('Cloud_Water_Path_Uncertainty').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.CWP_unc = scale*(data - offset)
+        
+        #
+        ###Cloud water path (1621)
+        #
+        data = c.select('Cloud_Water_Path_1621')[:]
+        attrs = c.select('Cloud_Water_Path_1621').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.CWP1621 = scale*(data - offset)
+        
+        #
+        ###Cloud water path uncertainty (1621)
+        #
+        data = c.select('Cloud_Water_Path_Uncertainty_1621')[:]
+        attrs = c.select('Cloud_Water_Path_Uncertainty_1621').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.CWP1621_unc = scale*(data - offset)
+        
+        #
+        ###Difference between ref(2.1) - ref(1.6)
+        #
+        data = c.select('Cloud_Water_Path_Uncertainty_1621')[:]
+        attrs = c.select('Cloud_Water_Path_Uncertainty_1621').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.delta_ref16 = -scale*(data - offset)
         
         self.tau163 = c.select('Cloud_Optical_Thickness_16')[:]
         attrs_tau163 = c.select('Cloud_Optical_Thickness_16').attributes(full=1)
