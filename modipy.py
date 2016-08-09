@@ -351,7 +351,11 @@ class MOD021KM(object):
     
     Modification history
     --------------------
-    Written (v.1.0): Michael Diamond, 08/04/16, Seattle, WA
+    Written (v.1.0): Michael Diamond, 08/04/2016, Seattle, WA
+    Modified (v.1.1): Michael Diamond, 08/08/2016, Seattle, WA
+        -Fixed bug in brightness temperature
+        -Changed aesthetics of plotting methods
+        -Masks invalid data before applying scale and offset
     """
     
     def __init__(self,filename):
@@ -394,8 +398,8 @@ class MOD021KM(object):
         
         Modification history
         --------------------
-        Written: Michael Diamond, 8/4/16, Seattle, WA
-        Modified: Michael Diamond, 8/8/16, Seattle, WA
+        Written: Michael Diamond, 8/4/2016, Seattle, WA
+        Modified: Michael Diamond, 8/8/2016, Seattle, WA
             -Mask invalid data before scaling
         """
         if not type(b) == int:
@@ -635,6 +639,8 @@ class MOD021KM(object):
         Modification history
         --------------------
         Written: Michael Diamond, 8/4/2016, Seattle, WA
+        Modified: Michael Diamond, 8/8/2016, Seattle, WA
+            -Fixed syntax error in constants
         """
         h = 6.62607004*10**-34 #m2 kg / s
         c = 299792458. #m/s
@@ -1268,6 +1274,7 @@ class nrtMOD06(object):
     """
     
     def __init__(self,cfile):
+        #Get geolocation data and date
         self.jday = cfile[14:16+1]
         self.year = cfile[10:13+1]
     	self.month = cal_day(self.jday,self.year).split()[0]
@@ -1278,6 +1285,7 @@ class nrtMOD06(object):
         elif cfile[1] == 'O':
             self.satellite = 'Terra'
         c = SD.SD(cfile, SDC.READ)
+        self.lat = 
         #
         #Effective radius
         #
