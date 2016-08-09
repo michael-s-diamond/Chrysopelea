@@ -1640,8 +1640,8 @@ class nrtMOD06(object):
         #
         ###Difference between ref(2.1) - ref(1.6)
         #
-        data = c.select('Cloud_Water_Path_Uncertainty_1621')[:]
-        attrs = c.select('Cloud_Water_Path_Uncertainty_1621').attributes(full=1)
+        data = c.select('Effective_Radius_Difference')[0,:,:]
+        attrs = c.select('Effective_Radius_Difference').attributes(full=1)
         scale = attrs['scale_factor'][0]
         offset = attrs['add_offset'][0]
         #Mask invalid data
@@ -1652,6 +1652,35 @@ class nrtMOD06(object):
         data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
         #Fixer-upper
         self.delta_ref16 = -scale*(data - offset)
+        #Normalized difference
+        self.del_ref16 = (-scale*(data - offset))/self.ref
+        
+        #
+        ###Difference between ref(2.1) - ref(3.7)
+        #
+        data = c.select('Effective_Radius_Difference')[1,:,:]
+        attrs = c.select('Effective_Radius_Difference').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.delta_ref37 = -scale*(data - offset)
+        #Normalized difference
+        self.del_ref37 = (-scale*(data - offset))/self.ref
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         self.tau163 = c.select('Cloud_Optical_Thickness_16')[:]
         attrs_tau163 = c.select('Cloud_Optical_Thickness_16').attributes(full=1)
