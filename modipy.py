@@ -312,7 +312,7 @@ def colorbar(band):
     elif band == 4 or 11 <= band <= 12:
         return 'YlGn'
     else:
-        return 'cubehelix'
+        return 'cubehelix_r'
 
 """
 Class for MOD021KM/MYD021KM calibrated radiance/reflectance files from LAADS Web (https://ladsweb.nascom.nasa.gov/)
@@ -395,6 +395,8 @@ class MOD021KM(object):
         Modification history
         --------------------
         Written: Michael Diamond, 8/4/16, Seattle, WA
+        Modified: Michael Diamond, 8/8/16, Seattle, WA
+            -Mask invalid data before scaling
         """
         if not type(b) == int:
             return 'Error: Band must be an integer between 1 and 36'
@@ -406,32 +408,32 @@ class MOD021KM(object):
             rawdata = h.select('EV_250_Aggr1km_RefSB')
             data = rawdata[ind,:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply scale and offset
-            offset = attrs["radiance_offsets"][0][ind]
-            scale = attrs["radiance_scales"][0][ind]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max, data < valid_min)
             data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+            #Apply scale and offset
+            offset = attrs["radiance_offsets"][0][ind]
+            scale = attrs["radiance_scales"][0][ind]
+            data = (data - offset) * scale
             return data
         elif 3 <= b <= 7:
             ind = b-3
             rawdata = h.select('EV_500_Aggr1km_RefSB')
             data = rawdata[ind,:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply scale and offset
-            offset = attrs["radiance_offsets"][0][ind]
-            scale = attrs["radiance_scales"][0][ind]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max,data < valid_min)
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            #Apply scale and offset
+            offset = attrs["radiance_offsets"][0][ind]
+            scale = attrs["radiance_scales"][0][ind]
+            data = (data - offset) * scale
             return data
         elif 8 <= b <= 19:
             if 8 <= b <= 12:
@@ -451,16 +453,16 @@ class MOD021KM(object):
             rawdata = h.select('EV_1KM_RefSB')
             data = rawdata[ind,:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply offset and scale
-            offset = attrs["radiance_offsets"][0][ind]
-            scale = attrs["radiance_scales"][0][ind]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max, data < valid_min)
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            #Apply offset and scale
+            offset = attrs["radiance_offsets"][0][ind]
+            scale = attrs["radiance_scales"][0][ind]
+            data = (data - offset) * scale
             return data
         elif 20 <= b <= 36 and b != 26:
             if 20 <= b <= 25:
@@ -470,32 +472,32 @@ class MOD021KM(object):
             rawdata = h.select('EV_1KM_Emissive')
             data = rawdata[ind,:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply offset and scale
-            offset = attrs["radiance_offsets"][0][ind]
-            scale = attrs["radiance_scales"][0][ind]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max, data < valid_min)
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            #Apply offset and scale
+            offset = attrs["radiance_offsets"][0][ind]
+            scale = attrs["radiance_scales"][0][ind]
+            data = (data - offset) * scale
             return data
         elif b == 26:
             ind = 0
             rawdata = h.select('EV_Band26')
             data = rawdata[:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply offset and scale
-            offset = attrs["radiance_offsets"][0]
-            scale = attrs["radiance_scales"][0]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max, data < valid_min)
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            #Apply offset and scale
+            offset = attrs["radiance_offsets"][0]
+            scale = attrs["radiance_scales"][0]
+            data = (data - offset) * scale
             return data
         SD.SD(self.filename).end()
 
@@ -522,7 +524,9 @@ class MOD021KM(object):
         
         Modification history
         --------------------
-        Written: Michael Diamond, 8/4/16, Seattle, WA
+        Written: Michael Diamond, 8/4/2016, Seattle, WA
+        Modified: Michael Diamond, 8/8/2016, Seattle, WA
+            -Mask invalid data before scaling
         """
         if not type(b) == int:
             return 'Error: Band must be an integer between 1 and 19 or 26'
@@ -534,32 +538,32 @@ class MOD021KM(object):
             rawdata = h.select('EV_250_Aggr1km_RefSB')
             data = rawdata[ind,:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply offset and scale
-            offset = attrs["reflectance_offsets"][0][ind]
-            scale = attrs["reflectance_scales"][0][ind]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max,data < valid_min)
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            #Apply offset and scale
+            offset = attrs["reflectance_offsets"][0][ind]
+            scale = attrs["reflectance_scales"][0][ind]
+            data = (data - offset) * scale
             return data
         elif 3 <= b <= 7:
             ind = b-3
             rawdata = h.select('EV_500_Aggr1km_RefSB')
             data = rawdata[ind,:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply offset and scale
-            offset = attrs["reflectance_offsets"][0][ind]
-            scale = attrs["reflectance_scales"][0][ind]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max,data < valid_min)
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            #Apply offset and scale
+            offset = attrs["reflectance_offsets"][0][ind]
+            scale = attrs["reflectance_scales"][0][ind]
+            data = (data - offset) * scale
             return data
         elif 8 <= b <= 19:
             if 8 <= b <= 12:
@@ -579,16 +583,16 @@ class MOD021KM(object):
             rawdata = h.select('EV_1KM_RefSB')
             data = rawdata[ind,:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply offset and scale
-            offset = attrs["reflectance_offsets"][0][ind]
-            scale = attrs["reflectance_scales"][0][ind]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max,data < valid_min)
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            #Apply offset and scale
+            offset = attrs["reflectance_offsets"][0][ind]
+            scale = attrs["reflectance_scales"][0][ind]
+            data = (data - offset) * scale
             return data
         elif 20 <= b <= 36 and b != 26:
             return 'Error: Band must be an integer between 1 and 19 or 26'
@@ -597,15 +601,15 @@ class MOD021KM(object):
             rawdata = h.select('EV_Band26')
             data = rawdata[:,:]
             attrs = rawdata.attributes(full=1)
-            #Apply offset and scale
-            offset = attrs["reflectance_offsets"][0]
-            scale = attrs["reflectance_scales"][0]
-            data = (data - offset) * scale
-            #Fix invalid data
+            #Mask invalid data
             valid_min = attrs["valid_range"][0][0]        
             valid_max = attrs["valid_range"][0][1]
             _FillValue = attrs["_FillValue"][0]
             invalid = np.logical_or(data > valid_max,data < valid_min)
+            #Apply offset and scale
+            offset = attrs["reflectance_offsets"][0]
+            scale = attrs["reflectance_scales"][0]
+            data = (data - offset) * scale
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
             return data
         SD.SD(self.filename).end()
@@ -632,9 +636,9 @@ class MOD021KM(object):
         --------------------
         Written: Michael Diamond, 8/4/2016, Seattle, WA
         """
-        h = 6.62607004.E-34 #m2 kg / s
+        h = 6.62607004*10**-34 #m2 kg / s
         c = 299792458. #m/s
-        k = 1.38064852.E-23 #m2 kg s-2 K-1
+        k = 1.38064852*10**-23 #m2 kg s-2 K-1
         B = self.radiance(band,hi)*10.**6 #In W/m2/m/sr
         if 1 <= band <= 19:
             wvl = avg_wavelength(band)/10.**9 #In m
@@ -694,6 +698,8 @@ class MOD021KM(object):
         Modification history
         --------------------
         Written: Michael Diamond, 8/4/2016, Seattle, WA
+        Modified: Michael Diamond, 8/8/2016, Seattle, WA
+            -Aesthetic changes to plots
         """
         if not type(band) == int or band > 36:
             print 'Error: Band must be an integer from 1-36'
@@ -709,32 +715,38 @@ class MOD021KM(object):
         if projection == 'merc':
             m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
             urcrnrlat=max_lat+1,projection='merc',resolution='l')
+            m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+            m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
         elif projection == 'global':
             m = Basemap(lon_0=0,projection='kav7',resolution='c')
+            m.drawparallels(np.arange(-180,180,15),labels=[1,0,0,0])
+            m.drawmeridians(np.arange(0,360,45),labels=[1,1,0,1])
         elif projection == 'satellite':
             m = Basemap(projection='nsper',lon_0=self.lon.mean(),lat_0=self.lat.mean(),\
             resolution='l',satellite_height=705000)
+            m.bluemarble(alpha=.75)
         else:
             print "Error: Projection must be 'merc', 'global', or 'satellite'."
             return
         m.drawcoastlines()
         m.drawcountries()
-        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
-        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
         if data == 'radiance': 
             d = self.radiance(band,hi)[::5,::5]
             vmin = 0
             vmax = d.max()
+            cmap = colorbar(band)
         elif data == 'reflectance': 
             d = self.reflectance(band,hi)[::5,::5]
             vmin = 0
             vmax = 1
+            cmap = colorbar(band)+'_r'
         elif data == 'brightness temperature' or data == 'Tb':
             d = self.Tb(band,hi)[::5,::5]
             vmin = d.min()
             vmax = d.max()
+            cmap = colorbar(band)
         m.pcolormesh(self.lon,self.lat,d[:np.shape(self.lon)[0],:np.shape(self.lat)[1]],\
-        shading='gouraud',cmap=colorbar(band),latlon=True,vmin=vmin,vmax=vmax)
+        shading='gouraud',cmap=cmap,latlon=True,vmin=vmin,vmax=vmax)
         cbar = m.colorbar()
         cbar.ax.tick_params(labelsize=size-4) 
         label = {'radiance' : 'Radiance [W/m^2/micron/sr]', 'reflectance' : 'Reflectance [unitless]',\
