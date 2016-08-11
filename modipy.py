@@ -1930,24 +1930,36 @@ class nrtMOD06(object):
         plt.title('%s for %s %s, %s from %s' % \
         (self.ds_name['%s' % data],self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
     
-    
-    def triplot(self,data='ref',projection='merc',full_res=False):
+    def triplot(self,data='ref',projection='merc',full_res=False,num=None):
         """
-        Make plot showing the standard effective radius variable and differences
+        Plot three datasets for a single MOD06 or MYD06 NRT file.
         
         Parameters
         ----------
-        Standard effective radius
+        data : string
+        Choice of...
+            'cot' for cloud optical thickness, cloud top pressure, and cloud water path
+            'geo' for solar zenith angle, relative azimuth angle, and sensor zenith angle
+            'ref' for standard effective radius (2.1 micron) and biases (1.6 micron)
+            
+        projection : string
+        Use 'merc' for mercator. Other options possible in future update.
         
-        A) ref(2.1) - ref(1.6)
+        full_res : boolean
+        If True, plot at 1 km x 1 km resolution, interpolating as necessary. If False, plot at 5 km x 5 km resolution by subsampling if necessary.
         
-        C) [ref(2.1) - ref(1.6)]/ref(2.1)
+        num : int or string
+        Default None. If an integer or a string, calls that figure number/name to make plot.
+ 
+        Returns
+        -------
+        Figure with three subplots.
         
         Modification history
         --------------------
-        Written: Michael Diamond, 08/10/2016, Seattle, WA
+        Written: Michael Diamond, 8/10-11/2016, Seattle, WA
         """
-        plt.figure(figsize=(4*13.33,4*7.5))
+        plt.figure(num=num,figsize=(4*13.33,4*7.5))
         font = 'Arial'
         size = 20
         if full_res:
@@ -2095,7 +2107,6 @@ class nrtMOD06(object):
         plt.title('C) %s' % t,fontname=font,fontsize=size)
         
         plt.show()
-    
-    
 
-cloud = nrtMOD06('MOD06_L2.A2016221.1050.051.NRT.hdf')
+
+cloud = nrtMOD06('MOD06_L2.A2016224.0940.051.NRT.hdf')
