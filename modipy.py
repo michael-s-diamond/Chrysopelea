@@ -1935,11 +1935,17 @@ class nrtMOD06(object):
         """
         Make plot showing the standard effective radius variable and differences
         
-        B) Standard effective radius
+        Parameters
+        ----------
+        Standard effective radius
         
         A) ref(2.1) - ref(1.6)
         
         C) [ref(2.1) - ref(1.6)]/ref(2.1)
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 08/10/2016, Seattle, WA
         """
         plt.figure(figsize=(4*13.33,4*7.5))
         font = 'Arial'
