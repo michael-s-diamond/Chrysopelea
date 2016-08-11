@@ -2053,6 +2053,9 @@ class nrtMOD06(object):
             vmax = 1000
         d = self.ds['%s' % key]
         if not full_res and data != 'geo' and data != 'cot': d = d[::5,::5]
+        if full_res and data == 'geo': d = zoom(d,5.)
+        if full_res and data == 'cot': 
+            d = zoom(d,5.)*self.ref[:np.shape(lon)[0],:np.shape(lat)[1]]/self.ref[:np.shape(lon)[0],:np.shape(lat)[1]] #Kludge
         m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
         cmap=c,latlon=True,vmin=vmin,vmax=vmax)
         cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax],\
@@ -2097,6 +2100,7 @@ class nrtMOD06(object):
             vmax = 300
         d = self.ds['%s' % key]
         if not full_res and data != 'geo': d = d[::5,::5]
+        if full_res and data == 'geo': d = zoom(d,5.)
         m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
         cmap=c,latlon=True,vmin=vmin,vmax=vmax)
         cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax],\
@@ -2108,5 +2112,3 @@ class nrtMOD06(object):
         
         plt.show()
 
-
-cloud = nrtMOD06('MOD06_L2.A2016224.0940.051.NRT.hdf')

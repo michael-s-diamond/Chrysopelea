@@ -1,13 +1,23 @@
 """
-Test FTP script
+FTP script for MODIS NRT data
+
+*Created for use with ORACLES NASA ESPO mission*
+
+Modification history
+--------------------
+Written: Michael Diamond, 8/11/2016, Seattle, WA
 """
 
 import ftplib
 import os
+os.chdir('/Users/michaeldiamond/GitHub/Chrysopelea')
+import modipy as mod
+os.chdir('/Users/michaeldiamond/Documents/test')
 import datetime
 import numpy as np
-from pyhdf import SD
-from pyhdf.SD import SDC
+import matplotlib.pylab as plt
+#from pyhdf import SD
+#from pyhdf.SD import SDC
 
 #Get today's date and current time
 now = datetime.datetime.utcnow()
@@ -112,8 +122,9 @@ passwd = 'WA7Murray'
 #
 ###Terra
 #
-os.chdir('/Users/michaeldiamond/Documents/ORACLES/flight_planning/test')
-current_files = os.listdir('/Users/michaeldiamond/Documents/ORACLES/flight_planning/test')
+os.chdir('/Users/michaeldiamond/Documents/test')
+current_files = os.listdir('/Users/michaeldiamond/Documents/test')
+new_files = []
 
 host = 'nrt1.modaps.eosdis.nasa.gov'
 
@@ -158,11 +169,39 @@ for f in files:
             #Get file
             print 'Getting file %s...' % f
             ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
+            new_files.append(f)
             print 'Done!\n'
 
 ftp.quit()
 
 
+new_files = ['MOD06_L2.A2016224.0940.051.NRT.hdf']
+#Make plots
+for f in new_files:
+    cloud = mod.nrtMOD06(f)
+    print 'Making triplots for %s...' % f
+    plt.figure(3)
+    print '...ref...'
+    plt.clf()
+    cloud.triplot(data='ref',full_res=True,num=3)
+    fig = plt.gcf()
+    fig.set_size_inches(2*13.33,2*7.5)
+    plt.savefig('%s_%s_%s_%s_tri_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
+    print '...geo...'
+    plt.clf()
+    cloud.triplot(data='geo',full_res=False,num=3)
+    fig = plt.gcf()
+    fig.set_size_inches(2*13.33,2*7.5)
+    plt.savefig('%s_%s_%s_%s_tri_geo' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
+    print '..cot...'
+    plt.clf()
+    cloud.triplot(data='cot',full_res=True,num=3)
+    fig = plt.gcf()
+    fig.set_size_inches(2*13.33,2*7.5)
+    plt.savefig('%s_%s_%s_%s_tri_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
+    print 'Done!\n'
+
+"""
 #
 ###Aqua
 #
@@ -211,3 +250,4 @@ for f in files:
             print 'Done!\n'
 
 ftp.quit()
+"""
