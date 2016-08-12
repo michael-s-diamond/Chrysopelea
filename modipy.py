@@ -105,6 +105,9 @@ def cal_day(julian_day,year):
 #Dictionary linking string month to numeric value
 month_num = {'January' : 1, 'February' : 2, 'March' : 3, 'April' : 4, 'May' : 5, 'June' : 6,\
     'July' : 7, 'August' : 8, 'September' : 9, 'October' : 10, 'November' : 11, 'December' : 12}
+#Dictionary linking string month number to name
+month_name = {'1': 'January','2' : 'February','3' : 'March','4' : 'April','5' : 'May','6' : 'June',\
+    '7' : 'July','8' : 'August','9' : 'September','10' : 'October','11' : 'November','12' : 'December'}
 
 #Convert calendar day to Julian day
 def julian_day(month, day, year):
@@ -2041,9 +2044,9 @@ class nrtMOD06(object):
             key = 'raa'
             t = 'Relative azimuth angle'
             c = 'RdYlBu_r'
-            vmin = -360
+            vmin = -180
             vmed = 0
-            vmax = 360
+            vmax = 180
         elif data == 'cot': 
             key = 'CTP'
             t = 'Cloud top pressure'
@@ -2053,7 +2056,9 @@ class nrtMOD06(object):
             vmax = 1000
         d = self.ds['%s' % key]
         if not full_res and data != 'geo' and data != 'cot': d = d[::5,::5]
-        if full_res and data == 'geo': d = zoom(d,5.)
+        if not full_res and data == 'geo': d = d*self.ref[::5,::5][:np.shape(d)[0],:np.shape(d)[1]]/self.ref[::5,::5][:np.shape(d)[0],:np.shape(d)[1]] #Cloud mask?
+        if full_res and data == 'geo': 
+            d = zoom(d,5.)*self.ref[:np.shape(lon)[0],:np.shape(lat)[1]]/self.ref[:np.shape(lon)[0],:np.shape(lat)[1]] #Kludge
         if full_res and data == 'cot': 
             d = zoom(d,5.)*self.ref[:np.shape(lon)[0],:np.shape(lat)[1]]/self.ref[:np.shape(lon)[0],:np.shape(lat)[1]] #Kludge
         m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
