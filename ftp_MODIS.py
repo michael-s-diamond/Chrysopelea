@@ -90,6 +90,9 @@ for f in files:
 
 ftp.quit()
 
+rsync = False
+if len(new_files) > 0: rsync = True
+
 #Make plots
 directory = '/Users/michaeldiamond/Documents/oracles/terra/%s' % jday
 for f in new_files:
@@ -211,6 +214,8 @@ for f in files:
 
 ftp.quit()
 
+if len(new_files) > 0: rsync = True
+
 #Make plots
 directory = '/Users/michaeldiamond/Documents/oracles/aqua/%s' % jday
 for f in new_files:
@@ -277,4 +282,5 @@ for f in new_files:
     plt.savefig('%s_%s_%s_map_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
     print 'Done!\n'
 
-
+if rsync:
+    os.system('rsync -a /Users/michaeldiamond/Documents/oracles diamond2@olympus.atmos.washington.edu:~/public_html')

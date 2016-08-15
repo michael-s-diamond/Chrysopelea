@@ -125,12 +125,14 @@ class CR(object):
         ###Load data
         #
         #Date
-        self.day = int(C1_file[10:12+1])
+        self.jday = int(C1_file[10:12+1])
         self.year = int(C1_file[6:9+1])
         self.time = C1_file[14:17+1]
         self.hour = int(self.time[0:2])
         self.minute = int(self.time[2:3])
-        dsl = 1427 + (self.day - 153) #For 2016
+        self.month = cal_day(int(self.jday),int(self.year))[0]
+        self.day = cal_day(int(self.jday),int(self.year))[1]
+        dsl = 1427 + (self.jday - 153) #For 2016
         #Load channel 1 (600 nm)
         data_C1 = nc.Dataset(C1_file, 'r')
         count_C1 = data_C1['RAW'][:,:]
@@ -149,8 +151,8 @@ class CR(object):
         sza = np.zeros([np.shape(self.lat)[0],np.shape(self.lon)[0]])
         for i in range(len(self.lat)):
             for j in range(len(self.lon)):
-                date = datetime.datetime(self.year, cal_day(self.day, self.year)[0], \
-                cal_day(self.day, self.year)[1],self.hour,self.minute,00)
+                date = datetime.datetime(self.year, cal_day(self.jday, self.year)[0], \
+                cal_day(self.jday, self.year)[1],self.hour,self.minute,00)
                 sza[i][j] = 90 - pysolar.solar.get_altitude_fast(self.lat[i],self.lon[j],date)
         self.sza = sza
         self.lon,self.lat = np.meshgrid(self.lon,self.lat)
@@ -188,7 +190,7 @@ class CR(object):
         cbar.ax.tick_params(labelsize=font-2) 
         cbar.set_label('Channel 2:Channel 1 color ratio',fontsize=font-1)
         plt.title('Color ratio from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
+        (cal_day(int(self.jday),int(self.year))[0],cal_day(int(self.jday),int(self.year))[1],\
         self.year,self.time),fontsize=font+2)
         plt.show()
     
@@ -207,7 +209,7 @@ class CR(object):
         cbar = m.colorbar()
         cbar.set_label('Channel 1:Channel 2 color ratio')
         plt.title('View from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
+        (cal_day(int(self.jday),int(self.year))[0],cal_day(int(self.jday),int(self.year))[1],\
         self.year,self.time))
         plt.show()
         
@@ -230,7 +232,7 @@ class CR(object):
         cbar.ax.tick_params(labelsize=font-2) 
         cbar.set_label('Channel 2:Channel 1 color ratio',fontsize=font-1)
         plt.title('Radiance color ratio from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
+        (cal_day(int(self.jday),int(self.year))[0],cal_day(int(self.jday),int(self.year))[1],\
         self.year,self.time),fontsize=font+2)
         plt.show()
     
@@ -254,7 +256,7 @@ class CR(object):
         cbar.ax.tick_params(labelsize=font-2) 
         cbar.set_label('Channel 1 radiance [W/m2/micron/sr]',fontsize=font-1)
         plt.title('600 nm radiance from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
+        (cal_day(int(self.jday),int(self.year))[0],cal_day(int(self.jday),int(self.year))[1],\
         self.year,self.time),fontsize=font+2)
         plt.subplot(2,2,2)
         m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
@@ -270,7 +272,7 @@ class CR(object):
         cbar.ax.tick_params(labelsize=font-2) 
         cbar.set_label('Channel 2 radiance [W/m2/micron/sr]',fontsize=font-1)
         plt.title('800 nm radiance from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
+        (cal_day(int(self.jday),int(self.year))[0],cal_day(int(self.jday),int(self.year))[1],\
         self.year,self.time),fontsize=font+2)
         plt.subplot(2,2,3)
         m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
@@ -286,7 +288,7 @@ class CR(object):
         cbar.ax.tick_params(labelsize=font-2) 
         cbar.set_label('Channel 1 reflectance [unitless]',fontsize=font-1)
         plt.title('600 nm reflectance from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
+        (cal_day(int(self.jday),int(self.year))[0],cal_day(int(self.jday),int(self.year))[1],\
         self.year,self.time),fontsize=font+2)
         plt.subplot(2,2,4)
         m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
@@ -302,7 +304,7 @@ class CR(object):
         cbar.ax.tick_params(labelsize=font-2) 
         cbar.set_label('Channel 2 reflectance [unitless]',fontsize=font-1)
         plt.title('800 nm reflectance from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
+        (cal_day(int(self.jday),int(self.year))[0],cal_day(int(self.jday),int(self.year))[1],\
         self.year,self.time),fontsize=font+2)
         plt.show()
     
@@ -325,12 +327,12 @@ class CR(object):
         cbar.ax.tick_params(labelsize=font-2) 
         cbar.set_label('Degrees',fontsize=font-1)
         plt.title('Solar zenith angle (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
+        (cal_day(int(self.jday),int(self.year))[0],cal_day(int(self.jday),int(self.year))[1],\
         self.year,self.time),fontsize=font+2)
         plt.show()
 
 """
-Microphysics blend
+Microphysics blend - orphaned for now
 """
 class blend(object):
     """
