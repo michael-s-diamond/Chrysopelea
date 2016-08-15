@@ -1,17 +1,18 @@
 """
-FTP script for MODIS NRT data
+FTP script for SEVIRI NRT data
 
 *Created for use with ORACLES NASA ESPO mission*
 
 Modification history
 --------------------
-Written: Michael Diamond, 8/11/2016, Seattle, WA
+Written: Michael Diamond, 8/15/2016, Seattle, WA
 """
 
 import ftplib
 import os
 os.chdir('/Users/michaeldiamond/GitHub/Chrysopelea')
 import modipy as mod
+import sevipy as sev
 os.chdir('/Users/michaeldiamond/Documents/')
 import datetime
 import numpy as np
@@ -29,21 +30,18 @@ minute = now.minute
 jday = mod.julian_day(month, day, year)
 
 """
-Get LANCE NRT data
+Get LARC SEVIRI data
 """
-user = 'diamond2'
-passwd = 'WA7Murray'
-host = 'nrt1.modaps.eosdis.nasa.gov'
+user = 'oracles'
+passwd = 'oracles2016'
+host = 'cloudsgate2.larc.nasa.gov'
 
-#
-###Terra cloud
-#
-print 'Checking for new Terra data...'
-fdir = '/Users/michaeldiamond/Documents/oracles_files/terra/%s' % jday
+print 'Checking for new SEVIRI data...'
+fdir = '/Users/michaeldiamond/Documents/oracles_files/msg/%s' % jday
 os.chdir(fdir)
 current_files = os.listdir(fdir)
 new_files = []
-path = '/allData/1/MOD06_L2/%s/%s/' % (year,jday)
+path = '/prod/exp/oracles/d2/sat-ncdf/msg/%s/%s/%s/' % (year,month,day)
 ftp = ftplib.FTP(host,user,passwd)
 ftp.cwd(path)
 ftp.set_pasv(True)
@@ -155,126 +153,4 @@ for f in new_files:
     fig.set_size_inches(2*13.33,2*7.5)
     plt.savefig('%s_%s_%s_map_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
     print 'Done!\n'
-    
-#
-###Aqua cloud
-#
-print 'Checking for new Aqua data...'
-fdir = '/Users/michaeldiamond/Documents/oracles_files/aqua/%s' % jday
-os.chdir(fdir)
-current_files = os.listdir(fdir)
-new_files = []
-path = '/allData/1/MYD06_L2/%s/%s/' % (year,jday)
-ftp = ftplib.FTP(host,user,passwd)
-ftp.cwd(path)
-ftp.set_pasv(True)
-
-directory = ftp.pwd()
-print 'Accessing directory %s%s\n' % (host,directory)
-
-files = ftp.nlst()
-files.reverse()
-for f in files:
-    if 12 <= int(f[18:20]) <= 15:
-        if f not in current_files:
-            if f[-1] == 't':
-                ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
-                #Check geolocation
-                fi = open(f,'r')
-                read = fi.read()
-                fi.close()
-                r = read.split()
-                i_e = r.index('EASTBOUNDINGCOORDINATE')+6
-                e = float(r[i_e])
-                i_w = r.index('WESTBOUNDINGCOORDINATE')+6
-                w = float(r[i_w])
-                i_n = r.index('NORTHBOUNDINGCOORDINATE')+6
-                n = float(r[i_n])
-                i_s = r.index('SOUTHBOUNDINGCOORDINATE')+6
-                s = float(r[i_s])
-                #Reject files outside of ORACLES study region
-                too_north = s > -4.5
-                too_south = n < -25.5
-                bad_lat = np.logical_or(too_north,too_south)
-                too_east = w > 15.5
-                too_west = e < -15.5
-                bad_lon = np.logical_or(too_east,too_west)
-                if bad_lat or bad_lon: files.remove(f[0:34])
-            else:
-                #Get file
-                print 'Getting file %s...' % f
-                ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
-                new_files.append(f)
-                print 'Done!\n'
-        else:
-            files.remove(f[0:34])
-
-ftp.quit()
-
-#Make plots
-directory = '/Users/michaeldiamond/Documents/oracles/aqua/%s' % jday
-for f in new_files:
-    #Read in file
-    os.chdir(fdir)
-    cloud = mod.nrtMOD06(f)
-    lon = zoom(cloud.lon,5.)
-    lat = zoom(cloud.lat,5.)
-    m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
-    lon, lat = m(lon, lat)
-    #Move to image directory
-    os.chdir(directory)
-    #Triplots for each file
-    print 'Making triplots for %s...' % f
-    plt.figure(3)
-    print '...ref...'
-    plt.clf()
-    cloud.triplot(data='ref',full_res=True,num=3)
-    fig = plt.gcf()
-    fig.set_size_inches(2*13.33,2*7.5)
-    plt.savefig('%s_%s_%s_%s_tri_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
-    print '...geo...'
-    plt.clf()
-    cloud.triplot(data='geo',full_res=False,num=3)
-    fig = plt.gcf()
-    fig.set_size_inches(2*13.33,2*7.5)
-    plt.savefig('%s_%s_%s_%s_tri_geo' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
-    print '...cot...'
-    plt.clf()
-    cloud.triplot(data='cot',full_res=True,num=3)
-    fig = plt.gcf()
-    fig.set_size_inches(2*13.33,2*7.5)
-    plt.savefig('%s_%s_%s_%s_tri_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
-    print 'Done!\n'
-    #Now add tile to daily maps
-    print 'Adding data to daily maps...'
-    print '...delta ref...'
-    plt.figure(6)
-    d = cloud.delta_ref16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-6,vmax=6)
-    fig = plt.gcf()
-    fig.set_size_inches(2*13.33,2*7.5)
-    plt.savefig('%s_%s_%s_map_delta' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
-    print '...del ref...'
-    plt.figure(12)
-    d = cloud.del_ref16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-500,vmax=500)
-    fig = plt.gcf()
-    fig.set_size_inches(2*13.33,2*7.5)
-    plt.savefig('%s_%s_%s_map_del' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
-    print '...effective radius...'
-    plt.figure(18)
-    d = cloud.ref
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=4,vmax=24)
-    fig = plt.gcf()
-    fig.set_size_inches(2*13.33,2*7.5)
-    plt.savefig('%s_%s_%s_map_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
-    print '...cloud optical thickness...'
-    plt.figure(24)
-    d = cloud.COT
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=0,vmax=32)
-    fig = plt.gcf()
-    fig.set_size_inches(2*13.33,2*7.5)
-    plt.savefig('%s_%s_%s_map_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
-    print 'Done!\n'
-
 
