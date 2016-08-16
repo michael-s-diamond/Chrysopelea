@@ -6,6 +6,8 @@ FTP script for MODIS NRT data
 Modification history
 --------------------
 Written: Michael Diamond, 8/11/2016, Seattle, WA
+Modified: Michael Diamond, 8/15/2016, Seattle, WA
+    -Made script resilient to ftp failures
 """
 
 import ftplib
@@ -44,14 +46,22 @@ os.chdir(fdir)
 current_files = os.listdir(fdir)
 new_files = []
 path = '/allData/1/MOD06_L2/%s/%s/' % (year,jday)
-ftp = ftplib.FTP(host,user,passwd)
-ftp.cwd(path)
-ftp.set_pasv(True)
+files = []
 
-directory = ftp.pwd()
-print 'Accessing directory %s%s\n' % (host,directory)
+#Try to access
+ftp_worked = False
+try:
+    ftp = ftplib.FTP(host,user,passwd)
+    ftp.cwd(path)
+    ftp.set_pasv(True)
 
-files = ftp.nlst()
+    directory = ftp.pwd()
+    print 'Accessing directory %s%s\n' % (host,directory)
+
+    files = ftp.nlst()
+    ftp_worked = True
+except: print 'Terra ftp failed...\n'
+
 files.reverse()
 for f in files:
     if 8 <= int(f[18:20]) <= 12:
@@ -88,7 +98,7 @@ for f in files:
         else:
             files.remove(f[0:34])
 
-ftp.quit()
+if ftp_worked: ftp.quit()
 
 rsync = False
 if len(new_files) > 0: rsync = True
@@ -168,14 +178,22 @@ os.chdir(fdir)
 current_files = os.listdir(fdir)
 new_files = []
 path = '/allData/1/MYD06_L2/%s/%s/' % (year,jday)
-ftp = ftplib.FTP(host,user,passwd)
-ftp.cwd(path)
-ftp.set_pasv(True)
+files = []
 
-directory = ftp.pwd()
-print 'Accessing directory %s%s\n' % (host,directory)
+#Try to access
+ftp_worked = False
+try:
+    ftp = ftplib.FTP(host,user,passwd)
+    ftp.cwd(path)
+    ftp.set_pasv(True)
 
-files = ftp.nlst()
+    directory = ftp.pwd()
+    print 'Accessing directory %s%s\n' % (host,directory)
+
+    files = ftp.nlst()
+    ftp_worked = True
+except: print 'Aqua ftp failed...\n'
+
 files.reverse()
 for f in files:
     if 12 <= int(f[18:20]) <= 15:
@@ -212,7 +230,7 @@ for f in files:
         else:
             files.remove(f[0:34])
 
-ftp.quit()
+if ftp_worked: ftp.quit()
 
 if len(new_files) > 0: rsync = True
 
