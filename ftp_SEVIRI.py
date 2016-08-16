@@ -1,5 +1,5 @@
 """
-FTP script for SEVIRI NRT data
+Download script for SEVIRI NRT data
 
 *Created for use with ORACLES NASA ESPO mission*
 
@@ -8,7 +8,6 @@ Modification history
 Written: Michael Diamond, 8/15/2016, Seattle, WA
 """
 
-import ftplib
 import os
 os.chdir('/Users/michaeldiamond/GitHub/Chrysopelea')
 import modipy as mod
@@ -17,7 +16,8 @@ os.chdir('/Users/michaeldiamond/Documents/')
 import datetime
 import numpy as np
 import matplotlib.pylab as plt
-from mpl_toolkits.basemap import Basemap
+import requests
+
 
 #Get today's date and current time
 now = datetime.datetime.utcnow()
@@ -28,39 +28,44 @@ hour = now.hour
 minute = now.minute
 jday = mod.julian_day(month, day, year)
 
+#Figure out what files are wanted
+wanted = []
+for hr in ['05','06','07','08','09','10','11','12','13','14','15','16','17','18','19']:
+    for mn in ['00','30']:
+        wanted.append('MET10.%s%s.%s%s.03km.C01.nc' % (year,jday,hr,mn))
+        wanted.append('MET10.%s%s.%s%s.03km.C02.nc' % (year,jday,hr,mn))
+
 """
 Get LARC SEVIRI data
 """
 user = 'oracles'
 passwd = 'oracles2016'
-host = 'cloudsgate2.larc.nasa.gov'
+host = 'http://cloudsgate2.larc.nasa.gov'
 
 print 'Checking for new SEVIRI data...'
+
 fdir = '/Users/michaeldiamond/Documents/oracles_files/msg/%s' % jday
 os.chdir(fdir)
 current_files = os.listdir(fdir)
+for f in wanted:
+    if f in current_files: wanted.remove(f)
 new_files = []
 path = '/prod/exp/oracles/d2/sat-ncdf/msg/%s/%s/%s/' % (year,month,day)
-ftp = ftplib.FTP(host,user,passwd)
-ftp.cwd(path)
-ftp.set_pasv(True)
+url = host+path
+files = []
 
-directory = ftp.pwd()
-print 'Accessing directory %s%s\n' % (host,directory)
-
-files = ftp.nlst()
-files.reverse()
-for f in files:
-    if 5 <= int(f[14:16]) <= 19:
-        C1 = f[-4] == 1
-        C2 = f[-4] == 2 and f[-5] == 0
-        if f not in current_files and np.logical_or(C1,C2):            
-            print 'Getting file %s...' % f
-            ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
+url_worked = False
+try:
+    r = requests.get(url,auth=(user,passwd))
+    for f in wanted:
+        try:
+            with open(f, 'wb').write as code:
+                code.write(r.content)
             new_files.append(f)
-            print 'Done!\n'
-
-ftp.quit()
+        except: pass
+    url_worked = True
+    r.close()
+except: print 'MSG url request at %s failed...\n' % now
 
 #Make plots
 directory = '/Users/michaeldiamond/Documents/oracles/msg/%s' % jday

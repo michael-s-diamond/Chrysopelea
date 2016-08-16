@@ -332,19 +332,16 @@ class CR(object):
         plt.show()
 
 """
-Microphysics blend - orphaned for now
+Cloud products
 """
-class blend(object):
+class cloud(object):
     """
-    Create blend of channels 2, 4 and 9 
+    Cloud product file
     
     Parameters
     ----------
-    C1_file : string
+    fn : string
     File name for channel 1 (600 nm).
-    
-    C2_file : string
-    File name for channel 2 (800 nm).
     
     Return
     -------
@@ -352,32 +349,37 @@ class blend(object):
     Color ratio of C1:C2.
     """
     
-    def __init__(self,C1_file,C2_file):
-        S_1 = 65.2296*10*(1/.56-1/.71)/(.71-.56) #Solar constant for 600 nm
-        S_2 = 73.0127*10*(1/.74-1/.88)/(.88-.74) #Solar constant for 800 nm
-        d = 1 #in AU
+    def __init__(self,fn):
         #
         ###Load data
         #
         #Date
-        self.day = int(C1_file[10:12+1])
-        self.year = int(C1_file[6:9+1])
-        self.time = C1_file[14:17+1]
+        self.jday = int(fn[10:12+1])
+        self.year = int(fn[6:9+1])
+        self.time = fn[14:17+1]
         self.hour = int(self.time[0:2])
         self.minute = int(self.time[2:3])
-        dsl = 1427 + (self.day - 153) #For 2016
-        #Load channel 1 (600 nm)
-        data_C1 = nc.Dataset(C1_file, 'r')
-        count_C1 = data_C1['RAW'][:,:]
-        g0_C1 = 0.5669
-        g1_C1 = 1.23E-5
-        self.lat = data_C1['Latitude'][:]/100.
-        self.lon = data_C1['Longitude'][:]/100.
-        #Load channel 2 (800 nm)
-        data_C2 = nc.Dataset(C2_file, 'r')
-        count_C2 = data_C2['RAW'][:,:]
-        g0_C2 = 0.4529
-        g1_C2 = 2.5E-6
+        self.month = cal_day(self.jday,self.year)[0]
+        self.day = cal_day(self.jday,self.year)[1]
+        #Load variables
+        variables = ['LWP', 'Nd', 'Pbot', 'Phase', 'Ptop', 'Re', 'Tau', 'Teff', 'Zbot', 'Ztop']
+        ds = {}
+        units = {}
+        names = {}
+        colors = {}
+        v = {} #Tuple of vmin, vmax
+        c = nc.Dataset(fn, 'r')
+        count = c['RAW'][:,:]
+
+        self.lat = c['Latitude'][:]
+        self.lon = c['Longitude'][:]
+        self.lon,self.lat = np.meshgrid(self.lon,self.lat)
+        
+        for ds_name in []:
+            data = c['%s' % ds_name]
+            valid_min = data.getncattr('valid_range')[0]
+            valid_max = data.getncattr('valid_range')[1]
+
         #
         ###Calculate solar zenith angle
         #

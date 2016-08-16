@@ -51,7 +51,7 @@ files = []
 #Try to access
 ftp_worked = False
 try:
-    ftp = ftplib.FTP(host,user,passwd)
+    ftp = ftplib.FTP(host,user,passwd,timeout=60)
     ftp.cwd(path)
     ftp.set_pasv(True)
 
@@ -60,7 +60,7 @@ try:
 
     files = ftp.nlst()
     ftp_worked = True
-except: print 'Terra ftp failed...\n'
+except: print 'Terra ftp at %s failed...\n' % now
 
 files.reverse()
 for f in files:
@@ -183,7 +183,7 @@ files = []
 #Try to access
 ftp_worked = False
 try:
-    ftp = ftplib.FTP(host,user,passwd)
+    ftp = ftplib.FTP(host,user,passwd,timeout=60)
     ftp.cwd(path)
     ftp.set_pasv(True)
 
@@ -192,7 +192,7 @@ try:
 
     files = ftp.nlst()
     ftp_worked = True
-except: print 'Aqua ftp failed...\n'
+except: print 'Aqua ftp at %s failed...\n' % now
 
 files.reverse()
 for f in files:
