@@ -4,6 +4,8 @@ Define basic functions for using SEVIRI data provided by LARC for ORACLES. Not g
 Modification history
 --------------------
 Written (v.1.0): Michael Diamond, 08/06/2016, Seattle, WA
+Modified (v.1.1): Michael Diamond, 08/15/2016, Seattle, WA
+    -Created object for cloud properties file
 """
 
 #Import libraries
@@ -341,6 +343,118 @@ class cloud(object):
     Parameters
     ----------
     fn : string
+    File name for cloud product.
+    
+    Methods
+    -------
+    plot: Create a plot of a variable over the ORACLES study area. See names for available datasets to plot.
+    
+    Returns
+    -------
+    jday, year, hour, mintue, month, day : int
+    Julian day, year, hour, minute, numeric month, calendar day
+    
+    time: string
+    
+    lat, lon : array, array
+    3 km x 3 km latitude and longitude arrays.
+    
+    names : dict
+    Dictionary of all named datasets.
+    
+    ds : dict
+    Dictionary of dataset value arrays. See names for available datasets.
+    
+    units : dict
+    Units for each dataset in ds.
+    
+    colors, v : dict
+    Cmap and (vmin, vmax) tuples used for plotting each dataset in ds.    
+    
+    Modification history
+    --------------------
+    Written (v.1.0): Michael Diamond, 8/15/2016, Seattle, WA
+    """
+    
+    def __init__(self,fn):
+        #
+        ###Load data
+        #
+        #Date
+        self.jday = int(fn[10:12+1])
+        self.year = int(fn[6:9+1])
+        self.time = fn[14:17+1]
+        self.hour = int(self.time[0:2])
+        self.minute = int(self.time[2:3])
+        self.month = cal_day(self.jday,self.year)[0]
+        self.day = cal_day(self.jday,self.year)[1]
+        #Load variables
+        variables = ['LWP', 'Nd', 'Pbot', 'Phase', 'Ptop', 'Re', 'Tau', 'Teff', 'Zbot', 'Ztop']
+        self.ds = {}
+        self.units = {}
+        self.names = {}
+        self.colors = {'LWP' : 'viridis', 'Nd' : 'viridis', 'Pbot' : 'cubehelix_r', 'Phase' : 'Blues', 'Ptop' : 'cubehelix_r',\
+        'Re' : 'viridis', 'Tau' : 'viridis', 'Teff' : 'plasma', 'Zbot' : 'cubehelix', 'Ztop' : 'cubehelix'}
+        self.v = {'LWP' : (0, 300), 'Nd' : (0, 1200), 'Pbot' : (500, 1000), 'Phase' : (1, 9), 'Ptop' : (500, 1000),\
+        'Re' : (4,24), 'Tau' : (0,32), 'Teff' : (230, 300), 'Zbot' : (0,3), 'Ztop' : (0,3)} #Tuple of vmin, vmax
+        c = nc.Dataset(fn, 'r')
+        self.lat = c['Latitude'][:]
+        self.lon = c['Longitude'][:]
+        self.lon,self.lat = np.meshgrid(self.lon,self.lat)
+        
+        for ds_name in variables:
+            data = c['%s' % ds_name]
+            valid_min = data.getncattr('valid_range')[0]
+            valid_max = data.getncattr('valid_range')[1]
+            _FillValue = data.getncattr('FillVal-1')
+            self.units['%s' % ds_name] = data.getncattr('units')
+            self.names['%s' % ds_name] = data.getncattr('long_name')
+            data = data[:,:]
+            invalid = np.logical_or(data > valid_max, data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            self.ds['%s' % ds_name] = data
+        
+        c.close()
+        
+        #Patch-up for liquid radius
+        self.names['Re'] = 'Liquid Radius'
+        self.units['Re'] = '%sm' % u"\u03BC"
+          
+    def plot(self,key='Re'):
+        """
+        Plot the view as seen from the satellite
+        """
+        plt.clf()
+        size = 20
+        font = 'Arial'
+        m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
+        urcrnrlat=self.lat.max(),projection='merc',resolution='i')
+        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=size-2,fontname=font)
+        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=size-2,fontname=font)
+        m.drawmapboundary(linewidth=1.5)        
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
+        latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
+        cbar = m.colorbar()
+        cbar.ax.tick_params(labelsize=size-2) 
+        cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size-1,fontname=font)
+        if key == 'Pbot' or key == 'Ptop': cbar.ax.invert_yaxis() 
+        plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
+        (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+2,fontname=font)
+        plt.show()
+
+"""
+Cloud products
+"""
+class aero(object):
+    """
+    Aerosol product file
+    
+    Parameters
+    ----------
+    fn : string
     File name for channel 1 (600 nm).
     
     Return
@@ -363,205 +477,57 @@ class cloud(object):
         self.day = cal_day(self.jday,self.year)[1]
         #Load variables
         variables = ['LWP', 'Nd', 'Pbot', 'Phase', 'Ptop', 'Re', 'Tau', 'Teff', 'Zbot', 'Ztop']
-        ds = {}
-        units = {}
-        names = {}
-        colors = {}
-        v = {} #Tuple of vmin, vmax
+        self.ds = {}
+        self.units = {}
+        self.names = {}
+        self.colors = {'LWP' : 'viridis', 'Nd' : 'viridis', 'Pbot' : 'cubehelix_r', 'Phase' : 'Blues', 'Ptop' : 'cubehelix_r',\
+        'Re' : 'viridis', 'Tau' : 'viridis', 'Teff' : 'plasma', 'Zbot' : 'cubehelix', 'Ztop' : 'cubehelix'}
+        self.v = {'LWP' : (0, 300), 'Nd' : (0, 1200), 'Pbot' : (500, 1000), 'Phase' : (1, 9), 'Ptop' : (500, 1000),\
+        'Re' : (4,24), 'Tau' : (0,32), 'Teff' : (230, 300), 'Zbot' : (0,3), 'Ztop' : (0,3)} #Tuple of vmin, vmax
         c = nc.Dataset(fn, 'r')
-        count = c['RAW'][:,:]
-
         self.lat = c['Latitude'][:]
         self.lon = c['Longitude'][:]
         self.lon,self.lat = np.meshgrid(self.lon,self.lat)
         
-        for ds_name in []:
+        for ds_name in variables:
             data = c['%s' % ds_name]
             valid_min = data.getncattr('valid_range')[0]
             valid_max = data.getncattr('valid_range')[1]
-
-        #
-        ###Calculate solar zenith angle
-        #
-        sza = np.zeros([np.shape(self.lat)[0],np.shape(self.lon)[0]])
-        for i in range(len(self.lat)):
-            for j in range(len(self.lon)):
-                date = datetime.datetime(self.year, cal_day(self.day, self.year)[0], \
-                cal_day(self.day, self.year)[1],self.hour,self.minute,00)
-                sza[i][j] = 90 - pysolar.solar.get_altitude_fast(self.lat[i],self.lon[j],date)
-        self.sza = sza
-        self.lon,self.lat = np.meshgrid(self.lon,self.lat)
-        #
-        ###Calculate radiances
-        #
-        self.Rad1 = (g0_C1+g1_C1*dsl)*(count_C1-51)
-        self.Rad2 = (g0_C2+g1_C2*dsl)*(count_C2-51)
-        #
-        ###Calculate reflectances
-        #
-        self.R1 = (np.pi*self.Rad1*d**2)/(S_1*np.cos(sza*np.pi/180.))
-        self.R2 = (np.pi*self.Rad2*d**2)/(S_2*np.cos(sza*np.pi/180.))
-        self.CR = self.R2/self.R1
-        #Close files
-        data_C1.close()
-        data_C2.close()
-    
-    def merc(self):
-        """
-        Plot the view as seen from the satellite
-        """
-        plt.clf()
-        font = 16
-        m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
-        urcrnrlat=self.lat.max(),projection='merc',resolution='i')
-        m.drawmapboundary(linewidth=1.5)        
-        m.drawcoastlines()
-        m.drawcountries()
-        m.fillcontinents('k',zorder=0)
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=font-2)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=font-2)
-        m.pcolormesh(self.lon,self.lat,self.CR,shading='gouraud',cmap='RdYlBu_r',latlon=True,vmin=.9,vmax=1.1)
-        cbar = m.colorbar()
-        cbar.ax.tick_params(labelsize=font-2) 
-        cbar.set_label('Channel 2:Channel 1 color ratio',fontsize=font-1)
-        plt.title('Color ratio from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
-        self.year,self.time),fontsize=font+2)
-        plt.show()
-    
-    def view(self):
-        """
-        Plot the view as seen from the satellite
-        """
-        plt.clf()
-        m = Basemap(projection='nsper',lon_0=self.lon.mean(),lat_0=self.lat.mean(),resolution='l',satellite_height=36000*1000)
-        m.drawcoastlines()
-        m.drawcountries()
-        m.fillcontinents('k',zorder=0)
-        m.drawparallels(np.arange(-180,180,10))
-        m.drawmeridians(np.arange(0,360,10))
-        m.pcolormesh(self.lon,self.lat,self.CR,shading='gouraud',cmap='RdYlBu_r',latlon=True,vmin=.5,vmax=1.5)
-        cbar = m.colorbar()
-        cbar.set_label('Channel 1:Channel 2 color ratio')
-        plt.title('View from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
-        self.year,self.time))
-        plt.show()
+            _FillValue = data.getncattr('FillVal-1')
+            self.units['%s' % ds_name] = data.getncattr('units')
+            self.names['%s' % ds_name] = data.getncattr('long_name')
+            data = data[:,:]
+            invalid = np.logical_or(data > valid_max, data < valid_min)
+            data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
+            self.ds['%s' % ds_name] = data
         
-    def radmerc(self):
+        c.close()
+        
+        #Patch-up for liquid radius
+        self.names['Re'] = 'Liquid Radius'
+        self.units['Re'] = '%sm' % u"\u03BC"
+          
+    def plot(self,key='Re'):
         """
         Plot the view as seen from the satellite
         """
         plt.clf()
-        font = 16
+        size = 20
+        font = 'Arial'
         m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
         urcrnrlat=self.lat.max(),projection='merc',resolution='i')
+        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=size-2,fontname=font)
+        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=size-2,fontname=font)
         m.drawmapboundary(linewidth=1.5)        
         m.drawcoastlines()
         m.drawcountries()
         m.fillcontinents('k',zorder=0)
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=font-2)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=font-2)
-        m.pcolormesh(self.lon,self.lat,self.Rad2/self.Rad1,shading='gouraud',cmap='RdYlBu_r',latlon=True,vmin=0.6,vmax=.8)
+        m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
+        latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
         cbar = m.colorbar()
-        cbar.ax.tick_params(labelsize=font-2) 
-        cbar.set_label('Channel 2:Channel 1 color ratio',fontsize=font-1)
-        plt.title('Radiance color ratio from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
-        self.year,self.time),fontsize=font+2)
-        plt.show()
-    
-    def check(self):
-        """
-        Plot radiances and reflectances to make sure it all makes sense.
-        """
-        plt.clf()
-        font = 12
-        plt.subplot(2,2,1)
-        m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
-        urcrnrlat=self.lat.max(),projection='merc',resolution='c')
-        m.drawmapboundary(linewidth=1.5)        
-        m.drawcoastlines()
-        m.drawcountries()
-        m.fillcontinents('k',zorder=0)
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=font-2)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=font-2)
-        m.pcolormesh(self.lon,self.lat,self.Rad1,shading='gouraud',cmap='viridis',latlon=True,vmin=0,vmax=300)
-        cbar = m.colorbar()
-        cbar.ax.tick_params(labelsize=font-2) 
-        cbar.set_label('Channel 1 radiance [W/m2/micron/sr]',fontsize=font-1)
-        plt.title('600 nm radiance from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
-        self.year,self.time),fontsize=font+2)
-        plt.subplot(2,2,2)
-        m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
-        urcrnrlat=self.lat.max(),projection='merc',resolution='c')
-        m.drawmapboundary(linewidth=1.5)        
-        m.drawcoastlines()
-        m.drawcountries()
-        m.fillcontinents('k',zorder=0)
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=font-2)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=font-2)
-        m.pcolormesh(self.lon,self.lat,self.Rad2,shading='gouraud',cmap='plasma',latlon=True,vmin=0,vmax=300)
-        cbar = m.colorbar()
-        cbar.ax.tick_params(labelsize=font-2) 
-        cbar.set_label('Channel 2 radiance [W/m2/micron/sr]',fontsize=font-1)
-        plt.title('800 nm radiance from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
-        self.year,self.time),fontsize=font+2)
-        plt.subplot(2,2,3)
-        m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
-        urcrnrlat=self.lat.max(),projection='merc',resolution='c')
-        m.drawmapboundary(linewidth=1.5)        
-        m.drawcoastlines()
-        m.drawcountries()
-        m.fillcontinents('k',zorder=0)
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=font-2)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=font-2)
-        m.pcolormesh(self.lon,self.lat,self.R1,shading='gouraud',cmap='YlGn',latlon=True,vmin=0,vmax=1)
-        cbar = m.colorbar()
-        cbar.ax.tick_params(labelsize=font-2) 
-        cbar.set_label('Channel 1 reflectance [unitless]',fontsize=font-1)
-        plt.title('600 nm reflectance from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
-        self.year,self.time),fontsize=font+2)
-        plt.subplot(2,2,4)
-        m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
-        urcrnrlat=self.lat.max(),projection='merc',resolution='c')
-        m.drawmapboundary(linewidth=1.5)        
-        m.drawcoastlines()
-        m.drawcountries()
-        m.fillcontinents('k',zorder=0)
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=font-2)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=font-2)
-        m.pcolormesh(self.lon,self.lat,self.R2,shading='gouraud',cmap='YlOrRd',latlon=True,vmin=0,vmax=1)
-        cbar = m.colorbar()
-        cbar.ax.tick_params(labelsize=font-2) 
-        cbar.set_label('Channel 2 reflectance [unitless]',fontsize=font-1)
-        plt.title('800 nm reflectance from MSG SEVIRI (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
-        self.year,self.time),fontsize=font+2)
-        plt.show()
-    
-    def szaplot(self):
-        """
-        Plot the sza
-        """
-        plt.clf()
-        font = 16
-        m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
-        urcrnrlat=self.lat.max(),projection='merc',resolution='i')
-        m.drawmapboundary(linewidth=1.5)        
-        m.drawcoastlines()
-        m.drawcountries()
-        m.fillcontinents('k',zorder=0)
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=font-2)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=font-2)
-        m.pcolormesh(self.lon,self.lat,self.sza,shading='gouraud',cmap='magma_r',latlon=True,vmin=0,vmax=90)
-        cbar = m.colorbar()
-        cbar.ax.tick_params(labelsize=font-2) 
-        cbar.set_label('Degrees',fontsize=font-1)
-        plt.title('Solar zenith angle (%s/%s/%s, %s UTC)' % \
-        (cal_day(int(self.day),int(self.year))[0],cal_day(int(self.day),int(self.year))[1],\
-        self.year,self.time),fontsize=font+2)
+        cbar.ax.tick_params(labelsize=size-2) 
+        cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size-1,fontname=font)
+        if key == 'Pbot' or key == 'Ptop': cbar.ax.invert_yaxis() 
+        plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
+        (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+2,fontname=font)
         plt.show()

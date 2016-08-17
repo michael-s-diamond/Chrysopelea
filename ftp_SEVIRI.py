@@ -84,11 +84,15 @@ for f in new_files[::2]:
     plt.savefig('%s_%s_%s_%s_CRS' % (cr.year,cr.month,cr.day,cr.time),dpi=300)
     print 'Done!\n'
 
-
-
-
-
-
+"""
+Test for cloud products
+"""
+os.chdir('/Users/michaeldiamond/Downloads')
+url = 'http://cloudsgate2.larc.nasa.gov/prod/exp/oracles/d2/prod-ncdf/msg/2016/08//16/'
+f = 'MET10.2016229.1045.cldprod.03km.pix.nc.gz'
+r = requests.get(url)
+with open(f, 'wb').write as code:
+    code.write(r.content)
 
 
 

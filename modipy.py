@@ -1299,69 +1299,31 @@ class nrtMOD06(object):
     
     Methods
     -------
+    get_ds: Get previously unaccessed dataset from file and save in dictionaries.
     
+    quick_plot: Plot variables quickly as a check/first look at the data.
+    
+    tri_plot: Pre-defined groupings of three plots meant for use on the ORACLES field campaign.
     
     Returns
     -------
-    day, year, time, satellite : int, int, int, float
-    Satellite properties.
+    jday, year, day : int
+    Julian day, year, calendar day
+    
+    month, time, satellite : string
+    Month, time of passage, satellite (Terra or Aqua)
     
     lat, lon : array, array
     5 km x 5 km latitude and longitude arrays.
     
-    Re163 : array
-    Effective radius calculated using the 1.63 micron channel.
+    ds_name : dict
+    Dictionary of named datasets available.
     
-    Re213 : array
-    Effective radius calculated using the 2.13 micron channel.
+    ds : dict
+    Dictionary of dataset arrays. Check ds_name for available parameters.
     
-    delta_Re : array
-    Difference between the 2.13 micron and 1.63 micron channels.
-    
-    del_Re : array
-    Difference between the 2.13 micron and 1.63 micron channels.
-    
-    R_Re : array
-    Ratio of 2.13 micron over 1.63 micron channels.
-    
-    median : array
-    Median effective radius bias.
-    
-    mean : array
-    Mean effective radius bias.
-    
-    tau163 : array
-    Cloud optical thickness calculated using the 1.63 micron channel.
-    
-    tau213 : array
-    Cloud optical thickness calculated using the 2.13 micron channel.
-    
-    delta_tau : array
-    Difference between the 2.13 micron and 1.63 micron channels.
-    
-    del_tau : array
-    Difference between the 2.13 micron and 1.63 micron channels.
-    
-    R_tau : array
-    Ratio of 2.13 micron over 1.63 micron channels.
-    
-    tau_median : array
-    Median effective radius bias.
-    
-    tau_mean : array
-    Mean effective radius bias.
-    
-    plot_Re : figure
-    Figure showing the above arrays for the single file.
-    
-    plot_tau : figure
-    Figure showing the above arrays for the single file.
-    
-    view_Re : figure
-    View from satellite (effective radius bias).
-    
-    view_tau : figure
-    View from satellite (cloud optical thickness bias).
+    units : dict
+    Dictionary of units for each dataset array.
     
     Modification history
     --------------------
