@@ -422,7 +422,12 @@ class cloud(object):
           
     def plot(self,key='Re'):
         """
-        Plot the view as seen from the satellite
+        Create a plot of a variable over the ORACLES study area. 
+        
+        Parameters
+        ----------
+        key : string
+        See names for available datasets to plot.
         """
         plt.clf()
         size = 20
@@ -505,15 +510,15 @@ class aero(object):
         self.ds = {}
         self.units = {}
         self.names = {}
-        self.colors = {'AOD' : 'cubehelix_r', 'Nd' : 'spectral'}
+        self.colors = {'AOD' : 'inferno_r', 'ATYP' : 'plasma'}
         self.v = {'AOD' : (0, 5), 'ATYP' : (1, 5)} #Tuple of vmin, vmax
-        c = nc.Dataset(fn, 'r')
-        self.lat = c['Latitude'][:]
-        self.lon = c['Longitude'][:]
+        a = nc.Dataset(fn, 'r')
+        self.lat = a['Latitude'][:]
+        self.lon = a['Longitude'][:]
         self.lon,self.lat = np.meshgrid(self.lon,self.lat)
         
         for ds_name in variables:
-            data = c['%s' % ds_name]
+            data = a['%s' % ds_name]
             valid_min = data.getncattr('valid_range')[0]
             valid_max = data.getncattr('valid_range')[1]
             _FillValue = data.getncattr('FillVal-1')
@@ -524,15 +529,16 @@ class aero(object):
             data = ma.MaskedArray(data,mask=invalid,fill_value=_FillValue)
             self.ds['%s' % ds_name] = data
         
-        c.close()
-        
-        #Patch-up for liquid radius
-        self.names['Re'] = 'Liquid Radius'
-        self.units['Re'] = '%sm' % u"\u03BC"
+        a.close()
           
-    def plot(self,key='Re'):
+    def plot(self,key='AOD'):
         """
-        Plot the view as seen from the satellite
+        Create a plot of a variable over the ORACLES study area. 
+        
+        Parameters
+        ----------
+        key : string
+        See names for available datasets to plot.
         """
         plt.clf()
         size = 20
@@ -545,12 +551,22 @@ class aero(object):
         m.drawcoastlines()
         m.drawcountries()
         m.fillcontinents('k',zorder=0)
-        m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
-        latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
-        cbar = m.colorbar()
-        cbar.ax.tick_params(labelsize=size-2) 
-        cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size-1,fontname=font)
-        if key == 'Pbot' or key == 'Ptop': cbar.ax.invert_yaxis() 
+        if key == 'AOD':
+            m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
+            latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
+            cbar = m.colorbar()
+            cbar.ax.tick_params(labelsize=size-2) 
+            cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size-1,fontname=font)
+        elif key == 'ATYP':
+            m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
+            latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
+            plt.contourf(np.array(([5,1],[3,2])),cmap=self.colors['%s' % key],levels=[0,1,2,3,4,5])
+            cbar = m.colorbar(ticks=[0,1,2,3,4,5])
+            cbar.ax.set_yticklabels(['Sea Salt','Sulphate','Organic C','Black C','Dust'])
+            cbar.ax.tick_params(labelsize=size-2) 
+            #cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size-1,fontname=font)
+        else:
+            print 'Error: Invalid key. Check names for available datasets.'
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
         (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+2,fontname=font)
         plt.show()
