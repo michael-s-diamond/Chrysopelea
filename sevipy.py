@@ -455,12 +455,37 @@ class aero(object):
     Parameters
     ----------
     fn : string
-    File name for channel 1 (600 nm).
+    File name for cloud product.
     
-    Return
+    Methods
     -------
-    CR : array
-    Color ratio of C1:C2.
+    plot: Create a plot of a variable over the ORACLES study area. See names for available datasets to plot.
+    
+    Returns
+    -------
+    jday, year, hour, mintue, month, day : int
+    Julian day, year, hour, minute, numeric month, calendar day
+    
+    time: string
+    
+    lat, lon : array, array
+    3 km x 3 km latitude and longitude arrays.
+    
+    names : dict
+    Dictionary of all named datasets.
+    
+    ds : dict
+    Dictionary of dataset value arrays. See names for available datasets.
+    
+    units : dict
+    Units for each dataset in ds.
+    
+    colors, v : dict
+    Cmap and (vmin, vmax) tuples used for plotting each dataset in ds.    
+    
+    Modification history
+    --------------------
+    Written (v.1.0): Michael Diamond, 8/15/2016, Seattle, WA
     """
     
     def __init__(self,fn):
@@ -476,14 +501,12 @@ class aero(object):
         self.month = cal_day(self.jday,self.year)[0]
         self.day = cal_day(self.jday,self.year)[1]
         #Load variables
-        variables = ['LWP', 'Nd', 'Pbot', 'Phase', 'Ptop', 'Re', 'Tau', 'Teff', 'Zbot', 'Ztop']
+        variables = ['AOD', 'ATYP']
         self.ds = {}
         self.units = {}
         self.names = {}
-        self.colors = {'LWP' : 'viridis', 'Nd' : 'viridis', 'Pbot' : 'cubehelix_r', 'Phase' : 'Blues', 'Ptop' : 'cubehelix_r',\
-        'Re' : 'viridis', 'Tau' : 'viridis', 'Teff' : 'plasma', 'Zbot' : 'cubehelix', 'Ztop' : 'cubehelix'}
-        self.v = {'LWP' : (0, 300), 'Nd' : (0, 1200), 'Pbot' : (500, 1000), 'Phase' : (1, 9), 'Ptop' : (500, 1000),\
-        'Re' : (4,24), 'Tau' : (0,32), 'Teff' : (230, 300), 'Zbot' : (0,3), 'Ztop' : (0,3)} #Tuple of vmin, vmax
+        self.colors = {'AOD' : 'cubehelix_r', 'Nd' : 'spectral'}
+        self.v = {'AOD' : (0, 5), 'ATYP' : (1, 5)} #Tuple of vmin, vmax
         c = nc.Dataset(fn, 'r')
         self.lat = c['Latitude'][:]
         self.lon = c['Longitude'][:]
