@@ -6,7 +6,7 @@ FTP script for MODIS NRT data
 Modification history
 --------------------
 Written: Michael Diamond, 8/11/2016, Seattle, WA
-Modified: Michael Diamond, 8/15/2016, Seattle, WA
+Modified: Michael Diamond, 8/16/2016, Seattle, WA
     -Made script resilient to ftp failures
 """
 
@@ -301,4 +301,5 @@ for f in new_files:
     print 'Done!\n'
 
 if rsync:
-    os.system('rsync -a /Users/michaeldiamond/Documents/oracles diamond2@olympus.atmos.washington.edu:~/public_html')
+    try: os.system('rsync -a /Users/michaeldiamond/Documents/oracles diamond2@olympus.atmos.washington.edu:~/public_html')
+    except: print 'Rsync failed at %s' % now

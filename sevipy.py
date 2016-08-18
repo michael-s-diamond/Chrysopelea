@@ -4,7 +4,7 @@ Define basic functions for using SEVIRI data provided by LARC for ORACLES. Not g
 Modification history
 --------------------
 Written (v.1.0): Michael Diamond, 08/06/2016, Seattle, WA
-Modified (v.1.1): Michael Diamond, 08/15/2016, Seattle, WA
+Modified (v.1.1): Michael Diamond, 08/16/2016, Seattle, WA
     -Created object for cloud properties file
 """
 
@@ -373,7 +373,7 @@ class cloud(object):
     
     Modification history
     --------------------
-    Written (v.1.0): Michael Diamond, 8/15/2016, Seattle, WA
+    Written (v.1.0): Michael Diamond, 8/16/2016, Seattle, WA
     """
     
     def __init__(self,fn):
@@ -490,7 +490,7 @@ class aero(object):
     
     Modification history
     --------------------
-    Written (v.1.0): Michael Diamond, 8/15/2016, Seattle, WA
+    Written (v.1.0): Michael Diamond, 8/16/2016, Seattle, WA
     """
     
     def __init__(self,fn):
