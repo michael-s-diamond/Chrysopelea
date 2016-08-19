@@ -100,11 +100,24 @@ for f in files:
 
 if ftp_worked: ftp.quit()
 
+
+directory = '/Users/michaeldiamond/Documents/oracles/terra/%s' % jday
+os.chdir(directory)
+current_images = os.listdir(directory)
+os.chdir(fdir)
+
+#Add to new_files if things got overlooked before and no image was made
+for f in current_files:
+    if f[-1] == 'f':
+        time = f[18:22]
+        ref_im = '%s_%s_%s_%s_tri_ref.png' % (year,month,day,time)
+        if ref_im not in current_images: new_files.append(f)
+    else: pass
+
 rsync = False
 if len(new_files) > 0: rsync = True
 
 #Make plots
-directory = '/Users/michaeldiamond/Documents/oracles/terra/%s' % jday
 for f in new_files:
     #Read in file
     os.chdir(fdir)
@@ -232,10 +245,22 @@ for f in files:
 
 if ftp_worked: ftp.quit()
 
+directory = '/Users/michaeldiamond/Documents/oracles/aqua/%s' % jday
+os.chdir(directory)
+current_images = os.listdir(directory)
+os.chdir(fdir)
+
+#Add to new_files if things got overlooked before and no image was made
+for f in current_files:
+    if f[-1] == 'f':
+        time = f[18:22]
+        ref_im = '%s_%s_%s_%s_tri_ref.png' % (year,month,day,time)
+        if ref_im not in current_images: new_files.append(f)
+    else: pass
+
 if len(new_files) > 0: rsync = True
 
 #Make plots
-directory = '/Users/michaeldiamond/Documents/oracles/aqua/%s' % jday
 for f in new_files:
     #Read in file
     os.chdir(fdir)

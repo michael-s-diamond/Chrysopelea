@@ -44,13 +44,34 @@ for f in current_files:
 for f in new_files:
     if len(f) > 35 and f[0:35] in current_files: new_files.remove(f)
     if len(f) > 38 and f[0:38] in current_files: new_files.remove(f)
+#Add files if images were not made properly
+directory = '/Users/michaeldiamond/Documents/oracles/msg/%s' % jday
+os.chdir(directory)
+current_images = os.listdir(directory)
+os.chdir(file_directory)
+
+#Add to new_files if things got overlooked before and no image was made
+for f in current_files:
+    if f[0] == 'M' and 5 <= int(f[14:16]) <= 19:
+        time = f[14:18]
+        if f[-4] == '1':
+            ref_im = '%s_%s_%s_%s_CRS.png' % (year,month,day,time)
+            if ref_im not in current_images: 
+                new_files.append(f)
+        elif f[19] == 'c':
+            ref_im = '%s_%s_%s_%s_Re.png' % (year,month,day,time)
+            if ref_im not in current_images: new_files.append(f)
+        elif f[19] == 'a':
+            ref_im = '%s_%s_%s_%s_AOD.png' % (year,month,day,time)
+            if ref_im not in current_images: new_files.append(f)
+        else: pass
+    else: pass
 
 #Make plots
-directory = '/Users/michaeldiamond/Documents/oracles/msg/%s' % jday
 for f in new_files:
-    if 5 <= int(f[14:16]) <= 19:
+    if f[0] == 'M' and 5 <= int(f[14:16]) <= 19:
         if f[-4] == '1':
-            if f[0:26]+'2.nc' in new_files:
+            if f[0:26]+'2.nc' in new_files or f[0:26]+'2.nc' in current_files:
                 #Read in file
                 os.chdir(file_directory)
                 cr = sev.CR(f,f[0:26]+'2.nc')
@@ -70,39 +91,43 @@ for f in new_files:
         elif f[19] == 'c':
             #Read in file
             os.chdir(file_directory)
-            os.system('gunzip %s' % f)
-            f = f[0:38]
-            cloud = sev.cloud(f)
-            #Move to image directory
-            os.chdir(directory)
-            #Effective radius for each file pair
-            print 'Making plots for %s...' % f
-            for var in ['Re','Nd','Tau','Pbot','Ptop']:
-                print '...%s...' % var
-                plt.figure(100)
-                cloud.plot(var)
-                fig = plt.gcf()
-                fig.set_size_inches(2*13.33,2*7.5)
-                plt.savefig('%s_%s_%s_%s_%s' % (cloud.year,cloud.month,cloud.day,cloud.time,var),dpi=300)
-            print 'Done!\n'
+            try:
+                os.system('gunzip %s' % f)
+                fc = f[0:38]
+                cloud = sev.cloud(fc)
+                #Move to image directory
+                os.chdir(directory)
+                #Effective radius for each file pair
+                print 'Making plots for %s...' % fc
+                for var in ['Re','Nd','Tau','Pbot','Ptop']:
+                    print '...%s...' % var
+                    plt.figure(100)
+                    cloud.plot(var)
+                    fig = plt.gcf()
+                    fig.set_size_inches(2*13.33,2*7.5)
+                    plt.savefig('%s_%s_%s_%s_%s' % (cloud.year,cloud.month,cloud.day,cloud.time,var),dpi=300)
+                print 'Done!\n'
+            except: os.system('rm %s' % f)
         elif f[19] == 'a':
             ##Read in file
             os.chdir(file_directory)
-            os.system('gunzip %s' % f)
-            f = f[0:35]
-            aero = sev.aero(f)
-            #Move to image directory
-            os.chdir(directory)
-            #Effective radius for each file pair
-            print 'Making plots for %s...' % f
-            for var in ['AOD','ATYP']:
-                print '...%s...' % var
-                plt.figure(100)
-                aero.plot(var)
-                fig = plt.gcf()
-                fig.set_size_inches(2*13.33,2*7.5)
-                plt.savefig('%s_%s_%s_%s_%s' % (aero.year,aero.month,aero.day,aero.time,var),dpi=300)
-            print 'Done!\n'
+            try:
+                os.system('gunzip %s' % f)
+                fa = f[0:35]
+                aero = sev.aero(fa)
+                #Move to image directory
+                os.chdir(directory)
+                #Effective radius for each file pair
+                print 'Making plots for %s...' % fa
+                for var in ['AOD','ATYP']:
+                    print '...%s...' % var
+                    plt.figure(100)
+                    aero.plot(var)
+                    fig = plt.gcf()
+                    fig.set_size_inches(2*13.33,2*7.5)
+                    plt.savefig('%s_%s_%s_%s_%s' % (aero.year,aero.month,aero.day,aero.time,var),dpi=300)
+                print 'Done!\n'
+            except: os.system('rm %s' % f)
         else: pass
     else: pass
 
