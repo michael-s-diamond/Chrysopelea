@@ -16,6 +16,7 @@ os.chdir('/Users/michaeldiamond/Documents/')
 import datetime
 import numpy as np
 import matplotlib.pylab as plt
+from mpl_toolkits.basemap import Basemap
 
 #Get today's date and current time
 now = datetime.datetime.utcnow()
@@ -25,13 +26,6 @@ month = now.month
 hour = now.hour
 minute = now.minute
 jday = mod.julian_day(month, day, year)
-
-#Figure out what files are wanted
-wanted = []
-for hr in ['05','06','07','08','09','10','11','12','13','14','15','16','17','18','19']:
-    for mn in ['00','30']:
-        wanted.append('MET10.%s%s.%s%s.03km.C01.nc' % (year,jday,hr,mn))
-        wanted.append('MET10.%s%s.%s%s.03km.C02.nc' % (year,jday,hr,mn))
 
 """
 Get LARC SEVIRI data
@@ -47,26 +41,74 @@ new_files = os.listdir(file_directory)
 #Rid list of repeat files
 for f in current_files:
     if f in new_files: new_files.remove(f)
+for f in new_files:
+    if len(f) > 35 and f[0:35] in current_files: new_files.remove(f)
+    if len(f) > 38 and f[0:38] in current_files: new_files.remove(f)
 
 #Make plots
 directory = '/Users/michaeldiamond/Documents/oracles/msg/%s' % jday
 for f in new_files:
-    if 5 <= f[:0] <= 19:
-    
-    #Read in file
-    os.chdir(file_directory)
-    cr = sev.CR(f,f[0:26]+'2.nc')
-    #Move to image directory
-    os.chdir(directory)
-    #Color ratio for each file pair
-    print 'Making CR plots for %s...' % f
-    plt.figure(100)
-    cr.merc()
-    fig = plt.gcf()
-    fig.set_size_inches(2*13.33,2*7.5)
-    plt.savefig('%s_%s_%s_%s_CRS' % (cr.year,cr.month,cr.day,cr.time),dpi=300)
-    print 'Done!\n'
+    if 5 <= int(f[14:16]) <= 19:
+        if f[-4] == '1':
+            if f[0:26]+'2.nc' in new_files:
+                #Read in file
+                os.chdir(file_directory)
+                cr = sev.CR(f,f[0:26]+'2.nc')
+                #Move to image directory
+                os.chdir(directory)
+                #Color ratio for each file pair
+                print 'Making CR plots for %s...' % f
+                plt.figure(100)
+                cr.merc()
+                fig = plt.gcf()
+                fig.set_size_inches(2*13.33,2*7.5)
+                plt.savefig('%s_%s_%s_%s_CRS' % (cr.year,cr.month,cr.day,cr.time),dpi=300)
+                print 'Done!\n'
+            else:
+                os.chdir(file_directory)
+                os.system('rm %s' % f)
+        elif f[19] == 'c':
+            #Read in file
+            os.chdir(file_directory)
+            os.system('gunzip %s' % f)
+            f = f[0:38]
+            cloud = sev.cloud(f)
+            #Move to image directory
+            os.chdir(directory)
+            #Effective radius for each file pair
+            print 'Making plots for %s...' % f
+            for var in ['Re','Nd','Tau','Pbot','Ptop']:
+                print '...%s...' % var
+                plt.figure(100)
+                cloud.plot(var)
+                fig = plt.gcf()
+                fig.set_size_inches(2*13.33,2*7.5)
+                plt.savefig('%s_%s_%s_%s_%s' % (cloud.year,cloud.month,cloud.day,cloud.time,var),dpi=300)
+            print 'Done!\n'
+        elif f[19] == 'a':
+            ##Read in file
+            os.chdir(file_directory)
+            os.system('gunzip %s' % f)
+            f = f[0:35]
+            aero = sev.aero(f)
+            #Move to image directory
+            os.chdir(directory)
+            #Effective radius for each file pair
+            print 'Making plots for %s...' % f
+            for var in ['AOD','ATYP']:
+                print '...%s...' % var
+                plt.figure(100)
+                aero.plot(var)
+                fig = plt.gcf()
+                fig.set_size_inches(2*13.33,2*7.5)
+                plt.savefig('%s_%s_%s_%s_%s' % (aero.year,aero.month,aero.day,aero.time,var),dpi=300)
+            print 'Done!\n'
+        else: pass
+    else: pass
 
-
-
-
+rsync = False
+if len(new_files) > 0: rsync = True
+if rsync:
+    try: os.system('rsync -a /Users/michaeldiamond/Documents/oracles diamond2@olympus.atmos.washington.edu:~/public_html')
+    except: print 'Rsync failed at %s' % now
+print 'Done!\n'

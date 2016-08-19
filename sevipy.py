@@ -428,26 +428,36 @@ class cloud(object):
         ----------
         key : string
         See names for available datasets to plot.
+        
+        clf : boolean
+        If True, clear off pre-existing figure. If False, plot over pre-existing figure.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 08/16/2016, Seattle, WA
         """
         plt.clf()
-        size = 20
+        size = 24
         font = 'Arial'
         m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
         urcrnrlat=self.lat.max(),projection='merc',resolution='i')
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=size-2,fontname=font)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=size-2,fontname=font)
+        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=size,fontname=font)
+        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=size,fontname=font)
         m.drawmapboundary(linewidth=1.5)        
         m.drawcoastlines()
         m.drawcountries()
-        m.fillcontinents('k',zorder=0)
+        if key == 'Pbot' or key == 'Ptop': 
+            m.drawmapboundary(fill_color='steelblue')
+            m.fillcontinents(color='floralwhite',lake_color='steelblue',zorder=0)
+        else: m.fillcontinents('k',zorder=0)
         m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
         latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
         cbar = m.colorbar()
         cbar.ax.tick_params(labelsize=size-2) 
-        cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size-1,fontname=font)
+        cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size,fontname=font)
         if key == 'Pbot' or key == 'Ptop': cbar.ax.invert_yaxis() 
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
-        (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+2,fontname=font)
+        (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+4,fontname=font)
         plt.show()
 
 """
@@ -541,22 +551,23 @@ class aero(object):
         See names for available datasets to plot.
         """
         plt.clf()
-        size = 20
+        size = 24
         font = 'Arial'
         m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
         urcrnrlat=self.lat.max(),projection='merc',resolution='i')
-        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=size-2,fontname=font)
-        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=size-2,fontname=font)
+        m.drawparallels(np.arange(-180,180,5),labels=[1,0,0,0],fontsize=size,fontname=font)
+        m.drawmeridians(np.arange(0,360,5),labels=[1,1,0,1],fontsize=size,fontname=font)
         m.drawmapboundary(linewidth=1.5)        
         m.drawcoastlines()
         m.drawcountries()
-        m.fillcontinents('k',zorder=0)
+        m.drawmapboundary(fill_color='steelblue')
+        m.fillcontinents(color='floralwhite',lake_color='steelblue',zorder=0)
         if key == 'AOD':
             m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
             latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
             cbar = m.colorbar()
             cbar.ax.tick_params(labelsize=size-2) 
-            cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size-1,fontname=font)
+            cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size,fontname=font)
         elif key == 'ATYP':
             m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
             latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
@@ -564,9 +575,8 @@ class aero(object):
             cbar = m.colorbar(ticks=[0,1,2,3,4,5])
             cbar.ax.set_yticklabels(['Sea Salt','Sulphate','Organic C','Black C','Dust'])
             cbar.ax.tick_params(labelsize=size-2) 
-            #cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size-1,fontname=font)
         else:
             print 'Error: Invalid key. Check names for available datasets.'
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
-        (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+2,fontname=font)
+        (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+4,fontname=font)
         plt.show()
