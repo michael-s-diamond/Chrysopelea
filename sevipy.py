@@ -435,6 +435,8 @@ class cloud(object):
         Modification history
         --------------------
         Written: Michael Diamond, 08/16/2016, Seattle, WA
+        Modified: Michael Diamond, 08/21/2016
+           -Added ORACLES routine flight plan, Walvis Bay (orange), and Ascension Island
         """
         plt.clf()
         size = 24
@@ -456,6 +458,9 @@ class cloud(object):
         cbar.ax.tick_params(labelsize=size-2) 
         cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size,fontname=font)
         if key == 'Pbot' or key == 'Ptop': cbar.ax.invert_yaxis() 
+        m.scatter(14.5247,-22.9390,s=500,c='orange',marker='D',latlon=True)
+        m.scatter(-14.3559,-7.9467,s=750,c='c',marker='*',latlon=True)
+        m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=5,linestyle='dashed',latlon=True)
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
         (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+4,fontname=font)
         plt.show()
@@ -549,6 +554,12 @@ class aero(object):
         ----------
         key : string
         See names for available datasets to plot.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 08/16/2016, Seattle, WA
+        Modified: Michael Diamond, 08/21/2016
+           -Added ORACLES routine flight plan, Walvis Bay (orange), and Ascension Island
         """
         plt.clf()
         size = 24
@@ -577,6 +588,9 @@ class aero(object):
             cbar.ax.tick_params(labelsize=size-2) 
         else:
             print 'Error: Invalid key. Check names for available datasets.'
+        m.scatter(14.5247,-22.9390,s=500,c='orange',marker='D',latlon=True)
+        m.scatter(-14.3559,-7.9467,s=750,c='c',marker='*',latlon=True)
+        m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=5,linestyle='dashed',latlon=True)
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
         (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+4,fontname=font)
         plt.show()
