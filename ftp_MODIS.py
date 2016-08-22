@@ -14,7 +14,8 @@ import ftplib
 import os
 os.chdir('/Users/michaeldiamond/GitHub/Chrysopelea')
 import modipy as mod
-os.chdir('/Users/michaeldiamond/Documents/')
+os.chdir('/Users/michaeldiamond/')
+from login import u, p
 import datetime
 import numpy as np
 import matplotlib.pylab as plt
@@ -33,8 +34,8 @@ jday = mod.julian_day(month, day, year)
 """
 Get LANCE NRT data
 """
-user = 'diamond2'
-passwd = 'WA7Murray'
+user = u['MODIS']
+passwd = p['MODIS']
 host = 'nrt1.modaps.eosdis.nasa.gov'
 
 #

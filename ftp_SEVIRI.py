@@ -14,9 +14,7 @@ import modipy as mod
 import sevipy as sev
 os.chdir('/Users/michaeldiamond/Documents/')
 import datetime
-import numpy as np
 import matplotlib.pylab as plt
-from mpl_toolkits.basemap import Basemap
 
 #Get today's date and current time
 now = datetime.datetime.utcnow()
