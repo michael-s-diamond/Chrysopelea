@@ -1328,6 +1328,7 @@ class nrtMOD06(object):
     Modification history
     --------------------
     Written: Michael Diamond, 08/08-09/2016, Seattle, WA
+    Modified: Michael Diamond, 08/22/2016, Seattle, WA
     """
     
     def __init__(self,cfile):
@@ -1797,6 +1798,18 @@ class nrtMOD06(object):
         ds['raa'] = self.raa
         units['raa'] = 'degrees'
         
+        #
+        ###Nd
+        #
+        k = .8
+        gam_ad = 2.E-6 #kg/m^4
+        frac_ad = 1
+        gam_eff = gam_ad*frac_ad
+        self.Nd = 10**.5/(4*np.pi*1000**.5)*gam_eff**.5*self.COT**.5/(self.ref*10**-6)**2.5/k/100.**3
+        ds_name['Nd'] = 'Droplet concentration'
+        ds['Nd'] = self.Nd
+        units['Nd'] = '$\mathregular{cm^{-3}}$'
+        
         #Finishing touches
         self.ds_name = ds_name
         self.ds = ds
@@ -1906,6 +1919,7 @@ class nrtMOD06(object):
             'cot' for cloud optical thickness, cloud top pressure, and cloud water path
             'geo' for solar zenith angle, relative azimuth angle, and sensor zenith angle
             'ref' for standard effective radius (2.1 micron) and biases (1.6 micron)
+            'Nd' for ref, Nd, and COT
             
         projection : string
         Use 'merc' for mercator. Other options possible in future update.
@@ -1971,6 +1985,13 @@ class nrtMOD06(object):
             vmin = 0
             vmed = 16
             vmax = 32
+        elif data == 'Nd': 
+            key = 'ref'
+            t = 'Effective radius'
+            c = 'viridis'
+            vmin = 4
+            vmed = 14
+            vmax = 24
         d = self.ds['%s' % key]
         if not full_res and data != 'geo': d = d[::5,::5]
         if full_res and data == 'geo': d = zoom(d,5.)
@@ -2016,6 +2037,13 @@ class nrtMOD06(object):
             vmin = 500
             vmed = 750
             vmax = 1000
+        elif data == 'Nd': 
+            key = 'Nd'
+            t = 'Droplet concentration'
+            c = 'viridis'
+            vmin = 0
+            vmed = 600
+            vmax = 1200
         d = self.ds['%s' % key]
         if not full_res and data != 'geo' and data != 'cot': d = d[::5,::5]
         if not full_res and data == 'geo': d = d*self.ref[::5,::5][:np.shape(d)[0],:np.shape(d)[1]]/self.ref[::5,::5][:np.shape(d)[0],:np.shape(d)[1]] #Cloud mask?
@@ -2065,6 +2093,13 @@ class nrtMOD06(object):
             vmin = 0
             vmed = 150
             vmax = 300
+        elif data == 'Nd': 
+            key = 'COT'
+            t = 'Cloud optical thickness'
+            c = 'viridis'
+            vmin = 0
+            vmed = 16
+            vmax = 32
         d = self.ds['%s' % key]
         if not full_res and data != 'geo': d = d[::5,::5]
         if full_res and data == 'geo': d = zoom(d,5.)

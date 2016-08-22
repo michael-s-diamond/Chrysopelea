@@ -149,6 +149,12 @@ for f in new_files:
     fig = plt.gcf()
     fig.set_size_inches(2*13.33,2*7.5)
     plt.savefig('%s_%s_%s_%s_tri_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
+    print '...Nd...'
+    plt.clf()
+    cloud.triplot(data='Nd',full_res=True,num=3)
+    fig = plt.gcf()
+    fig.set_size_inches(2*13.33,2*7.5)
+    plt.savefig('%s_%s_%s_%s_tri_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
     print 'Done!\n'
     #Now add tile to daily maps
     print 'Adding data to daily maps...'
@@ -195,6 +201,16 @@ for f in new_files:
     fig = plt.gcf()
     fig.set_size_inches(2*13.33,2*7.5)
     plt.savefig('%s_%s_%s_map_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
+    print '...Nd...'
+    plt.figure(35)
+    d = cloud.Nd
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=0,vmax=1200)
+    m.scatter(14.5247,-22.9390,s=500,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=750,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=5,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(2*13.33,2*7.5)
+    plt.savefig('%s_%s_%s_map_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
     print 'Done!\n'
     
 #
@@ -307,6 +323,12 @@ for f in new_files:
     fig = plt.gcf()
     fig.set_size_inches(2*13.33,2*7.5)
     plt.savefig('%s_%s_%s_%s_tri_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
+    print '...Nd...'
+    plt.clf()
+    cloud.triplot(data='Nd',full_res=True,num=3)
+    fig = plt.gcf()
+    fig.set_size_inches(2*13.33,2*7.5)
+    plt.savefig('%s_%s_%s_%s_tri_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=300)
     print 'Done!\n'
     #Now add tile to daily maps
     print 'Adding data to daily maps...'
@@ -350,6 +372,16 @@ for f in new_files:
     fig = plt.gcf()
     fig.set_size_inches(2*13.33,2*7.5)
     plt.savefig('%s_%s_%s_map_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
+    print '...Nd...'
+    plt.figure(30)
+    d = cloud.Nd
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=0,vmax=1200)
+    m.scatter(14.5247,-22.9390,s=500,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=750,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=5,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(2*13.33,2*7.5)
+    plt.savefig('%s_%s_%s_map_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=300)
     print 'Done!\n'
 
 if rsync:
