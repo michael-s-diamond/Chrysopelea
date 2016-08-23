@@ -1938,9 +1938,9 @@ class nrtMOD06(object):
         --------------------
         Written: Michael Diamond, 8/10-11/2016, Seattle, WA
         """
-        plt.figure(num=num,figsize=(4*13.33,4*7.5))
+        plt.figure(num=num,figsize=(13.33,7.5))
         font = 'Arial'
-        size = 20
+        size = 16
         if full_res:
             lat = zoom(self.lat,5.)
             lon = zoom(self.lon,5.)

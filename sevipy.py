@@ -439,7 +439,7 @@ class cloud(object):
            -Added ORACLES routine flight plan, Walvis Bay (orange), and Ascension Island
         """
         plt.clf()
-        size = 24
+        size = 16
         font = 'Arial'
         m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
         urcrnrlat=self.lat.max(),projection='merc',resolution='i')
@@ -458,9 +458,12 @@ class cloud(object):
         cbar.ax.tick_params(labelsize=size-2) 
         cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size,fontname=font)
         if key == 'Pbot' or key == 'Ptop': cbar.ax.invert_yaxis() 
-        m.scatter(14.5247,-22.9390,s=500,c='orange',marker='D',latlon=True)
-        m.scatter(-14.3559,-7.9467,s=750,c='c',marker='*',latlon=True)
-        m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=5,linestyle='dashed',latlon=True)
+        m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+        m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+        if key == 'Pbot' or key == 'Ptop':
+            m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='grey',linewidth=3,linestyle='dashed',latlon=True)
+        else: 
+            m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
         (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+4,fontname=font)
         plt.show()
@@ -562,7 +565,7 @@ class aero(object):
            -Added ORACLES routine flight plan, Walvis Bay (orange), and Ascension Island
         """
         plt.clf()
-        size = 24
+        size = 16
         font = 'Arial'
         m = Basemap(llcrnrlon=self.lon.min(),llcrnrlat=self.lat.min(),urcrnrlon=self.lon.max(),\
         urcrnrlat=self.lat.max(),projection='merc',resolution='i')
@@ -588,9 +591,9 @@ class aero(object):
             cbar.ax.tick_params(labelsize=size-2) 
         else:
             print 'Error: Invalid key. Check names for available datasets.'
-        m.scatter(14.5247,-22.9390,s=500,c='orange',marker='D',latlon=True)
-        m.scatter(-14.3559,-7.9467,s=750,c='c',marker='*',latlon=True)
-        m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=5,linestyle='dashed',latlon=True)
+        m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+        m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+        m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
         (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+4,fontname=font)
         plt.show()

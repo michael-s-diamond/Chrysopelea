@@ -80,8 +80,8 @@ for f in new_files:
                 plt.figure(100)
                 cr.merc()
                 fig = plt.gcf()
-                fig.set_size_inches(2*13.33,2*7.5)
-                plt.savefig('%s_%s_%s_%s_CRS' % (cr.year,cr.month,cr.day,cr.time),dpi=300)
+                fig.set_size_inches(13.33,7.5)
+                plt.savefig('%s_%s_%s_%s_CRS' % (cr.year,cr.month,cr.day,cr.time),dpi=150)
                 print 'Done!\n'
             else:
                 os.chdir(file_directory)
@@ -102,8 +102,8 @@ for f in new_files:
                     plt.figure(100)
                     cloud.plot(var)
                     fig = plt.gcf()
-                    fig.set_size_inches(2*13.33,2*7.5)
-                    plt.savefig('%s_%s_%s_%s_%s' % (cloud.year,cloud.month,cloud.day,cloud.time,var),dpi=300)
+                    fig.set_size_inches(13.33,7.5)
+                    plt.savefig('%s_%s_%s_%s_%s' % (cloud.year,cloud.month,cloud.day,cloud.time,var),dpi=150)
                 print 'Done!\n'
             except: os.system('rm %s' % f)
         elif f[19] == 'a':
@@ -122,8 +122,8 @@ for f in new_files:
                     plt.figure(100)
                     aero.plot(var)
                     fig = plt.gcf()
-                    fig.set_size_inches(2*13.33,2*7.5)
-                    plt.savefig('%s_%s_%s_%s_%s' % (aero.year,aero.month,aero.day,aero.time,var),dpi=300)
+                    fig.set_size_inches(13.33,7.5)
+                    plt.savefig('%s_%s_%s_%s_%s' % (aero.year,aero.month,aero.day,aero.time,var),dpi=150)
                 print 'Done!\n'
             except: os.system('rm %s' % f)
         else: pass
