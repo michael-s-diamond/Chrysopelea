@@ -2042,8 +2042,8 @@ class nrtMOD06(object):
             t = 'Droplet concentration'
             c = 'viridis'
             vmin = 0
-            vmed = 600
-            vmax = 1200
+            vmed = 500
+            vmax = 1000
         d = self.ds['%s' % key]
         if not full_res and data != 'geo' and data != 'cot': d = d[::5,::5]
         if not full_res and data == 'geo': d = d*self.ref[::5,::5][:np.shape(d)[0],:np.shape(d)[1]]/self.ref[::5,::5][:np.shape(d)[0],:np.shape(d)[1]] #Cloud mask?

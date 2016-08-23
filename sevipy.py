@@ -395,7 +395,7 @@ class cloud(object):
         self.names = {}
         self.colors = {'LWP' : 'viridis', 'Nd' : 'viridis', 'Pbot' : 'cubehelix_r', 'Phase' : 'Blues', 'Ptop' : 'cubehelix_r',\
         'Re' : 'viridis', 'Tau' : 'viridis', 'Teff' : 'plasma', 'Zbot' : 'cubehelix', 'Ztop' : 'cubehelix'}
-        self.v = {'LWP' : (0, 300), 'Nd' : (0, 1200), 'Pbot' : (500, 1000), 'Phase' : (1, 9), 'Ptop' : (500, 1000),\
+        self.v = {'LWP' : (0, 300), 'Nd' : (0, 1000), 'Pbot' : (500, 1000), 'Phase' : (1, 9), 'Ptop' : (500, 1000),\
         'Re' : (4,24), 'Tau' : (0,32), 'Teff' : (230, 300), 'Zbot' : (0,3), 'Ztop' : (0,3)} #Tuple of vmin, vmax
         c = nc.Dataset(fn, 'r')
         self.lat = c['Latitude'][:]
