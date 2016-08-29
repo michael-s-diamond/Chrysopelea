@@ -17,6 +17,7 @@ import numpy.ma as ma
 import matplotlib.pylab as plt
 from mpl_toolkits.basemap import Basemap
 from scipy.ndimage.interpolation import zoom
+from matplotlib.colors import LogNorm
 
 """
 General purpose functions
@@ -1289,9 +1290,7 @@ class nrtMOD06(object):
     Create object to analyze from MOD06_L2/MYD06_L2 cloud file downloaded from LANCE (https://lance.modaps.eosdis.nasa.gov/data_products/).
     
     ***Created for ORACLES campaign (https://espo.nasa.gov/home/oracles/)***
-    
-    NOTE: LANCE uses Collection 5, not Collection 6!
-    
+        
     Parameters
     ----------
     cfile : string
@@ -1329,6 +1328,9 @@ class nrtMOD06(object):
     --------------------
     Written: Michael Diamond, 08/08-09/2016, Seattle, WA
     Modified: Michael Diamond, 08/22/2016, Seattle, WA
+    Modified: Michael Diamond, 08/29/2016, Swakopmund, Namibia
+        -Collection 6 NRT processing now available!!!
+        -Updates to make compatible with C6 (mostly to ref, also added COT differences)
     """
     
     def __init__(self,cfile):
@@ -1398,6 +1400,82 @@ class nrtMOD06(object):
         ds_name['ref_unc'] = 'Cloud effective radius uncertainty'
         ds['ref_unc'] = self.ref_unc
         units['ref_unc'] = '%'
+        
+        #
+        ###Effective radius at 1.63 micron
+        #
+        data = c.select('Cloud_Effective_Radius_16')[:]
+        attrs = c.select('Cloud_Effective_Radius_16').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.ref16 = scale*(data - offset)
+        ds_name['ref16'] = 'Cloud effective radius (1.6 micron)'
+        ds['ref16'] = self.ref16
+        units['ref16'] = '%sm' % u"\u03BC"
+        
+        #
+        ###Effective radius uncertainty at 1.63 micron
+        #
+        data = c.select('Cloud_Effective_Radius_Uncertainty_16')[:]
+        attrs = c.select('Cloud_Effective_Radius_Uncertainty_16').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.ref16_unc = scale*(data - offset)
+        ds_name['ref16_unc'] = 'Cloud effective radius uncertainty (1.6 micron)'
+        ds['ref16_unc'] = self.ref16_unc
+        units['ref16_unc'] = '%'
+        
+        #
+        ###Effective radius at 3.7 micron
+        #
+        data = c.select('Cloud_Effective_Radius_37')[:]
+        attrs = c.select('Cloud_Effective_Radius_37').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.ref37 = scale*(data - offset)
+        ds_name['ref37'] = 'Cloud effective radius (3.7 micron)'
+        ds['ref37'] = self.ref37
+        units['ref37'] = '%sm' % u"\u03BC"
+        
+        #
+        ###Effective radius uncertainty at 3.7 micron
+        #
+        data = c.select('Cloud_Effective_Radius_Uncertainty_37')[:]
+        attrs = c.select('Cloud_Effective_Radius_Uncertainty_37').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.ref37_unc = scale*(data - offset)
+        ds_name['ref37_unc'] = 'Cloud effective radius uncertainty (3.7 micron)'
+        ds['ref37_unc'] = self.ref37_unc
+        units['ref37_unc'] = '%'
         
         #
         ###Effective radius (1621)
@@ -1493,6 +1571,82 @@ class nrtMOD06(object):
         ds_name['COT_unc'] = 'Cloud optical thickness uncertainty'
         ds['COT_unc'] = self.COT_unc
         units['COT_unc'] = '%'
+        
+        #
+        ###Cloud optical thickness at 1.6 micron
+        #
+        data = c.select('Cloud_Optical_Thickness_16')[:]
+        attrs = c.select('Cloud_Optical_Thickness_16').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.COT16 = scale*(data - offset)
+        ds_name['COT16'] = 'Cloud optical thickness (1.6 micron)'
+        ds['COT16'] = self.COT16
+        units['COT16'] = 'unitless'
+        
+        #
+        ###Cloud optical thickness uncertainty at 1.6 micron
+        #
+        data = c.select('Cloud_Optical_Thickness_Uncertainty_16')[:]
+        attrs = c.select('Cloud_Optical_Thickness_Uncertainty_16').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.COT16_unc = scale*(data - offset)
+        ds_name['COT16_unc'] = 'Cloud optical thickness uncertainty (1.6 micron)'
+        ds['COT16_unc'] = self.COT16_unc
+        units['COT16_unc'] = '%'
+        
+        #
+        ###Cloud optical thickness at 3.7 micron
+        #
+        data = c.select('Cloud_Optical_Thickness_37')[:]
+        attrs = c.select('Cloud_Optical_Thickness_37').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.COT37 = scale*(data - offset)
+        ds_name['COT37'] = 'Cloud optical thickness (3.7 micron)'
+        ds['COT37'] = self.COT37
+        units['COT37'] = 'unitless'
+        
+        #
+        ###Cloud optical thickness uncertainty at 3.7 micron
+        #
+        data = c.select('Cloud_Optical_Thickness_Uncertainty_37')[:]
+        attrs = c.select('Cloud_Optical_Thickness_Uncertainty_37').attributes(full=1)
+        scale = attrs['scale_factor'][0]
+        offset = attrs['add_offset'][0]
+        #Mask invalid data
+        valid_min = attrs["valid_range"][0][0]        
+        valid_max = attrs["valid_range"][0][1]
+        _FillValue = attrs["_FillValue"][0]
+        invalid = np.logical_or(data > valid_max, data < valid_min)
+        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)
+        #Fixer-upper
+        self.COT37_unc = scale*(data - offset)
+        ds_name['COT37_unc'] = 'Cloud optical thickness uncertainty (3.7 micron)'
+        ds['COT37_unc'] = self.COT37_unc
+        units['COT37_unc'] = '%'
         
         #
         ###Cloud optical thickness (1621)
@@ -1668,23 +1822,12 @@ class nrtMOD06(object):
         #
         ###Difference between ref(2.1) - ref(1.6)
         #
-        data = c.select('Effective_Radius_Difference')[0,:,:]
-        attrs = c.select('Effective_Radius_Difference').attributes(full=1)
-        scale = attrs['scale_factor'][0]
-        offset = attrs['add_offset'][0]
-        #Mask invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max, data < valid_min)
-        data = ma.MaskedArray(data, mask=invalid, fill_value=_FillValue)  
-        #Fixer-upper
-        self.delta_ref16 = -scale*(data - offset)*self.ref/self.ref
+        self.delta_ref16 = self.ref - self.ref16
         ds_name['delta_ref16'] = 'Effective radius difference (2.1-1.6 %sm)' % u"\u03BC"
         ds['delta_ref16'] = self.delta_ref16
         units['delta_ref16'] = '%sm' % u"\u03BC"
         #Normalized difference
-        self.del_ref16 = 1000.*(-scale*(data - offset))/self.ref
+        self.del_ref16 = 1000.*(self.delta_ref16)/self.ref
         ds_name['del_ref16'] = 'Normalized effective radius difference (2.1-1.6 %sm)' % u"\u03BC"
         ds['del_ref16'] = self.del_ref16
         units['del_ref16'] = 'per mil'
@@ -1692,27 +1835,41 @@ class nrtMOD06(object):
         #
         ###Difference between ref(2.1) - ref(3.7)
         #
-        data = c.select('Effective_Radius_Difference')[1,:,:]
-        attrs = c.select('Effective_Radius_Difference').attributes(full=1)
-        scale = attrs['scale_factor'][0]
-        offset = attrs['add_offset'][0]
-        #Mask invalid data
-        valid_min = attrs["valid_range"][0][0]        
-        valid_max = attrs["valid_range"][0][1]
-        _FillValue = attrs["_FillValue"][0]
-        invalid = np.logical_or(data > valid_max, data < valid_min)
-        clear = self.ref < 0
-        data = ma.MaskedArray(data, mask=np.logical_or(invalid,clear), fill_value=_FillValue)
-        #Fixer-upper
-        self.delta_ref37 = -scale*(data - offset)
+        self.delta_ref37 = self.ref - self.ref37
         ds_name['delta_ref37'] = 'Effective radius difference (2.1-3.7 %sm)' % u"\u03BC"
         ds['delta_ref37'] = self.delta_ref37
         units['delta_ref37'] = '%sm' % u"\u03BC"
         #Normalized difference
-        self.del_ref37 = 1000.*(-scale*(data - offset))/self.ref
+        self.del_ref37 = 1000.*(self.delta_ref37)/self.ref
         ds_name['del_ref37'] = 'Normalized effective radius difference (2.1-3.7 %sm)' % u"\u03BC"
         ds['del_ref37'] = self.del_ref37
         units['del_ref37'] = 'per mil'
+        
+        #
+        ###Difference between COT(2.1) - COT(1.6)
+        #
+        self.delta_COT16 = self.COT - self.COT16
+        ds_name['delta_COT16'] = 'Cloud optical thickness difference (2.1-1.6 %sm)' % u"\u03BC"
+        ds['delta_COT16'] = self.delta_COT16
+        units['delta_COT16'] = 'unitless'
+        #Normalized difference
+        self.del_COT16 = 1000.*(self.delta_COT16)/self.COT
+        ds_name['del_COT16'] = 'Normalized cloud optical thickness difference (2.1-1.6 %sm)' % u"\u03BC"
+        ds['del_COT16'] = self.del_COT16
+        units['del_COT16'] = 'per mil'
+        
+        #
+        ###Difference between COT(2.1) - COT(3.7)
+        #
+        self.delta_COT37 = self.COT - self.COT37
+        ds_name['delta_COT37'] = 'Cloud optical thickness difference (2.1-3.7 %sm)' % u"\u03BC"
+        ds['delta_COT37'] = self.delta_COT37
+        units['delta_COT37'] = 'unitless'
+        #Normalized difference
+        self.del_COT37 = 1000.*(self.delta_COT37)/self.COT
+        ds_name['del_COT37'] = 'Normalized cloud optical thickness difference (2.1-3.7 %sm)' % u"\u03BC"
+        ds['del_COT37'] = self.del_COT37
+        units['del_COT37'] = 'per mil'
         
         #
         ###Sensor/view azimuth angle
@@ -1799,7 +1956,7 @@ class nrtMOD06(object):
         units['raa'] = 'degrees'
         
         #
-        ###Nd
+        ###Nd at 2.13 micron
         #
         k = .8
         gam_ad = 2.E-6 #kg/m^4
@@ -1809,6 +1966,56 @@ class nrtMOD06(object):
         ds_name['Nd'] = 'Droplet concentration'
         ds['Nd'] = self.Nd
         units['Nd'] = '$\mathregular{cm^{-3}}$'
+        
+        #
+        ###Nd at 1.6 micron
+        #
+        k = .8
+        gam_ad = 2.E-6 #kg/m^4
+        frac_ad = 1
+        gam_eff = gam_ad*frac_ad
+        self.Nd16 = 10**.5/(4*np.pi*1000**.5)*gam_eff**.5*self.COT16**.5/(self.ref16*10**-6)**2.5/k/100.**3
+        ds_name['Nd16'] = 'Droplet concentration at 1.6 micron'
+        ds['Nd16'] = self.Nd16
+        units['Nd16'] = '$\mathregular{cm^{-3}}$'
+        
+        #
+        ###Nd at 3.7 micron
+        #
+        k = .8
+        gam_ad = 2.E-6 #kg/m^4
+        frac_ad = 1
+        gam_eff = gam_ad*frac_ad
+        self.Nd37 = 10**.5/(4*np.pi*1000**.5)*gam_eff**.5*self.COT37**.5/(self.ref37*10**-6)**2.5/k/100.**3
+        ds_name['Nd37'] = 'Droplet concentration at 3.7 micron'
+        ds['Nd37'] = self.Nd37
+        units['Nd37'] = '$\mathregular{cm^{-3}}$'
+        
+        #
+        ###Difference between Nd(2.1) - Nd(1.6)
+        #
+        self.delta_Nd16 = self.Nd - self.Nd16
+        ds_name['delta_Nd16'] = 'Cloud optical thickness difference (2.1-1.6 %sm)' % u"\u03BC"
+        ds['delta_Nd16'] = self.delta_Nd16
+        units['delta_Nd16'] = 'unitless'
+        #Normalized difference
+        self.del_Nd16 = 1000.*(self.delta_Nd16)/self.Nd
+        ds_name['del_Nd16'] = 'Normalized cloud optical thickness difference (2.1-1.6 %sm)' % u"\u03BC"
+        ds['del_Nd16'] = self.del_Nd16
+        units['del_Nd16'] = 'per mil'
+        
+        #
+        ###Difference between Nd(2.1) - Nd(3.7)
+        #
+        self.delta_Nd37 = self.Nd - self.Nd37
+        ds_name['delta_Nd37'] = 'Cloud optical thickness difference (2.1-3.7 %sm)' % u"\u03BC"
+        ds['delta_Nd37'] = self.delta_Nd37
+        units['delta_Nd37'] = 'unitless'
+        #Normalized difference
+        self.del_Nd37 = 1000.*(self.delta_Nd37)/self.Nd
+        ds_name['del_Nd37'] = 'Normalized cloud optical thickness difference (2.1-3.7 %sm)' % u"\u03BC"
+        ds['del_Nd37'] = self.del_Nd37
+        units['del_Nd37'] = 'per mil'
         
         #Finishing touches
         self.ds_name = ds_name
@@ -2114,3 +2321,209 @@ class nrtMOD06(object):
         
         plt.show()
 
+    def five_plot(self,data='ref'):
+        """
+        Make plot showing variable at each wavelength and biases
+        
+        Parameters
+        ----------
+        data : string
+        Choice of 'cot','ref', or 'Nd'. Default is effective radius.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 08/29/2016, Swakopmund, Namibia
+        """
+        plt.clf()
+        font = 'Arial'
+        size = 15
+        if data == 'ref':
+            dA = self.ref16
+            dB = self.ref
+            dC = self.ref37
+            dD = self.delta_ref16
+            dE = self.del_ref16
+            vABC = (4,14,24)
+            vD = (-6,0,6)
+            vE = (-500,0,500)
+            kABC = 'ref'
+            kD = 'delta_ref16'
+            kE = 'del_ref16'
+        elif data == 'cot':
+            dA = self.COT16
+            dB = self.COT
+            dC = self.COT37
+            dD = self.delta_COT16
+            dE = self.del_COT16
+            vABC = (0,16,32)
+            vD = (-1,0,1)
+            vE = (-100,0,100)
+            kABC = 'COT'
+            kD = 'delta_COT16'
+            kE = 'del_COT16'
+        elif data == 'Nd':
+            dA = self.Nd16
+            dB = self.Nd
+            dC = self.Nd37
+            dD = self.delta_Nd16
+            dE = self.del_Nd16
+            vABC = (0,500,1000)
+            vD = (-300,0,300)
+            vE = (-1000,0,1000)
+            kABC = 'Nd'
+            kD = 'delta_Nd16'
+            kE = 'del_Nd16'
+        else:
+            print 'Error: Invalid data input.'
+            return
+        #
+        ###Variables at different wavelengths
+        #
+        key = kABC
+        vmin = vABC[0]
+        vmed = vABC[1]
+        vmax = vABC[-1]
+        lat = self.lat
+        lon = self.lon
+        max_lon = lon.max()
+        max_lat = lat.max()
+        min_lon = lon.min()
+        min_lat = lat.min()
+        #1.63 micron band
+        plt.subplot(2,3,1)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'%s %s, %s' % (self.month,self.day, self.year),bbox=dict(facecolor='w', alpha=1),\
+        fontname=font,fontsize=size-2)
+        d = dA[::5,::5]
+        if data == 'Nd': 
+            vmin = 10
+            vmax = 1000
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cbar = m.colorbar(ticks=[1,10,100,1000])
+            cbar.ax.set_xticklabels([1,10,100,1000])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[per cc]',fontname=font,fontsize=size-2)
+        else:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,vmin=vmin,vmax=vmax)
+            cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('A) 1.63 %sm/860 nm channels' % (u"\u03BC"),fontname=font,fontsize=size)
+        #2.13 micron band
+        plt.subplot(2,3,2)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[0,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Time: %s' % (self.time),bbox=dict(facecolor='w', alpha=1),\
+        fontname=font,fontsize=size-2)
+        d = dB[::5,::5]
+        if data == 'Nd': 
+            vmin = 10
+            vmax = 1000
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cbar = m.colorbar(ticks=[1,10,100,1000])
+            cbar.ax.set_xticklabels([1,10,100,1000])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[per cc]',fontname=font,fontsize=size-2)
+        else:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,vmin=vmin,vmax=vmax)
+            cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('B) Standard %s retrieval' % (key),fontname=font,fontsize=size)
+        #3.7 micron band
+        plt.subplot(2,3,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[0,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Satellite: %s' % (self.satellite),bbox=dict(facecolor='w', alpha=1),\
+        fontname=font,fontsize=size-2)
+        d = dC[::5,::5]
+        if data == 'Nd': 
+            vmin = 10
+            vmax = 1000
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cbar = m.colorbar(ticks=[1,10,100,1000])
+            cbar.ax.set_xticklabels([1,10,100,1000])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[per cc]',fontname=font,fontsize=size-2)
+        else:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,vmin=vmin,vmax=vmax)
+            cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('C) 3.7 %sm/860 nm channels' % (u"\u03BC"),fontname=font,fontsize=size)
+        #
+        ###Bias plots
+        #
+        lon = zoom(lon,5.)
+        lat = zoom(lat,5.)
+        #Delta
+        key = kD
+        vmin = vD[0]
+        vmed = vD[1]
+        vmax = vD[-1]
+        plt.subplot(2,2,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        d = dD
+        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+        cmap='RdYlBu_r',latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+        cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+        cbar.ax.tick_params(labelsize=size-4)
+        cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('D) %s (2.13 %sm - 1.63 %sm)' % (u"\u0394",u"\u03BC",u"\u03BC"),fontname=font,fontsize=size)
+        #Del
+        key = kE
+        vmin = vE[0]
+        vmed = vE[1]
+        vmax = vE[-1]
+        plt.subplot(2,2,4)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        d = dE
+        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+        cmap='RdYlBu_r',latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+        cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+        cbar.ax.tick_params(labelsize=size-4)
+        cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('E) %s (2.13 %sm - 1.63 %sm)' % (u"\u03B4",u"\u03BC",u"\u03BC"),fontname=font,fontsize=size)
+        plt.show()

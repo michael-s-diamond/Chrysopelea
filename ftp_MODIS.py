@@ -8,6 +8,9 @@ Modification history
 Written: Michael Diamond, 8/11/2016, Seattle, WA
 Modified: Michael Diamond, 8/16/2016, Seattle, WA
     -Made script resilient to ftp failures
+Modified: Michael Diamond, 8/29/2016, Swakopmund, Namibia
+    -Changed collection to 6, updated available plots
+    -Got rid of rsync; will do from crontab
 """
 
 import ftplib
@@ -21,6 +24,7 @@ import numpy as np
 import matplotlib.pylab as plt
 from mpl_toolkits.basemap import Basemap
 from scipy.ndimage.interpolation import zoom
+from matplotlib.colors import LogNorm
 
 #Get today's date and current time
 now = datetime.datetime.utcnow()
@@ -36,7 +40,7 @@ Get LANCE NRT data
 """
 user = u['MODIS']
 passwd = p['MODIS']
-host = 'nrt1.modaps.eosdis.nasa.gov'
+host = 'nrt3.modaps.eosdis.nasa.gov'
 
 #
 ###Terra cloud
@@ -46,7 +50,7 @@ fdir = '/Users/michaeldiamond/Documents/oracles_files/terra/%s' % jday
 os.chdir(fdir)
 current_files = os.listdir(fdir)
 new_files = []
-path = '/allData/1/MOD06_L2/%s/%s/' % (year,jday)
+path = '/allData/6/MOD06_L2/%s/%s/' % (year,jday)
 files = []
 
 #Try to access
@@ -111,7 +115,7 @@ os.chdir(fdir)
 for f in current_files:
     if f[-1] == 'f':
         time = f[18:22]
-        ref_im = '%s_%s_%s_%s_tri_ref.png' % (year,month,day,time)
+        ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
     else: pass
 
@@ -130,32 +134,32 @@ for f in new_files:
     #Move to image directory
     os.chdir(directory)
     #Triplots for each file
-    print 'Making triplots for %s...' % f
+    print 'Making plots for %s...' % f
     plt.figure(3)
     print '...ref...'
     plt.clf()
-    cloud.triplot(data='ref',full_res=True,num=3)
+    cloud.five_plot(data='ref')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_tri_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=125)
     print '...geo...'
     plt.clf()
     cloud.triplot(data='geo',full_res=False,num=3)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_tri_geo' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_geo' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=125)
     print '...cot...'
     plt.clf()
-    cloud.triplot(data='cot',full_res=True,num=3)
+    cloud.five_plot(data='cot')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_tri_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=125)
     print '...Nd...'
     plt.clf()
-    cloud.triplot(data='Nd',full_res=True,num=3)
+    cloud.five_plot(data='Nd')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_tri_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
     print 'Done!\n'
     #Now add tile to daily maps
     print 'Adding data to daily maps...'
@@ -168,7 +172,7 @@ for f in new_files:
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_delta' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    plt.savefig('%s_%s_%s_map_delta_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print '...del ref...'
     plt.figure(14)
     d = cloud.del_ref16
@@ -178,7 +182,7 @@ for f in new_files:
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_del' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    plt.savefig('%s_%s_%s_map_del_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print '...effective radius...'
     plt.figure(21)
     d = cloud.ref
@@ -202,13 +206,53 @@ for f in new_files:
     print '...Nd...'
     plt.figure(35)
     d = cloud.Nd
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=0,vmax=1000)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',norm = LogNorm(vmin=10, vmax=1000))
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
     plt.savefig('%s_%s_%s_map_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print '...delta COT...'
+    plt.figure(35)
+    d = cloud.delta_COT16
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-1,vmax=1)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_delta_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print '...del COT...'
+    plt.figure(35)
+    d = cloud.del_COT16
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-100,vmax=100)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_del_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print '...delta Nd...'
+    plt.figure(35)
+    d = cloud.delta_Nd16
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-300,vmax=300)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_delta_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print '...del Nd...'
+    plt.figure(35)
+    d = cloud.del_Nd16
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-1000,vmax=1000)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_del_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print 'Done!\n'
     
 #
@@ -219,7 +263,7 @@ fdir = '/Users/michaeldiamond/Documents/oracles_files/aqua/%s' % jday
 os.chdir(fdir)
 current_files = os.listdir(fdir)
 new_files = []
-path = '/allData/1/MYD06_L2/%s/%s/' % (year,jday)
+path = '/allData/6/MYD06_L2/%s/%s/' % (year,jday)
 files = []
 
 #Try to access
@@ -283,7 +327,7 @@ os.chdir(fdir)
 for f in current_files:
     if f[-1] == 'f':
         time = f[18:22]
-        ref_im = '%s_%s_%s_%s_tri_ref.png' % (year,month,day,time)
+        ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
     else: pass
 
@@ -305,28 +349,28 @@ for f in new_files:
     plt.figure(3)
     print '...ref...'
     plt.clf()
-    cloud.triplot(data='ref',full_res=True,num=3)
+    cloud.five_plot(data='ref')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_tri_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
     print '...geo...'
     plt.clf()
     cloud.triplot(data='geo',full_res=False,num=3)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_tri_geo' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_geo' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
     print '...cot...'
     plt.clf()
-    cloud.triplot(data='cot',full_res=True,num=3)
+    cloud.five_plot(data='cot')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_tri_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
     print '...Nd...'
     plt.clf()
-    cloud.triplot(data='Nd',full_res=True,num=3)
+    cloud.five_plot(data='Nd')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_tri_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
     print 'Done!\n'
     #Now add tile to daily maps
     print 'Adding data to daily maps...'
@@ -339,7 +383,7 @@ for f in new_files:
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_delta' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    plt.savefig('%s_%s_%s_map_delta_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print '...del ref...'
     plt.figure(12)
     d = cloud.del_ref16
@@ -349,7 +393,7 @@ for f in new_files:
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_del' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    plt.savefig('%s_%s_%s_map_del_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print '...effective radius...'
     plt.figure(18)
     d = cloud.ref
@@ -373,15 +417,57 @@ for f in new_files:
     print '...Nd...'
     plt.figure(30)
     d = cloud.Nd
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=0,vmax=1000)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',norm = LogNorm(vmin=10, vmax=1000))
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
     plt.savefig('%s_%s_%s_map_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print '...delta COT...'
+    plt.figure(36)
+    d = cloud.delta_COT16
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-1,vmax=1)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_delta_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print '...del COT...'
+    plt.figure(48)
+    d = cloud.del_COT16
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-100,vmax=100)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_del_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print '...delta Nd...'
+    plt.figure(54)
+    d = cloud.delta_Nd16
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-300,vmax=300)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_delta_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print '...del Nd...'
+    plt.figure(60)
+    d = cloud.del_Nd16
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-1000,vmax=1000)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_del_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print 'Done!\n'
 
+"""
 if rsync:
     try: os.system('rsync -a /Users/michaeldiamond/Documents/oracles diamond2@olympus.atmos.washington.edu:~/public_html')
     except: print 'Rsync failed at %s' % now
+"""
