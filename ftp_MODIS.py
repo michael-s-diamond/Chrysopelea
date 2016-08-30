@@ -216,7 +216,7 @@ for f in new_files:
     print '...delta COT...'
     plt.figure(35)
     d = cloud.delta_COT16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-1,vmax=1)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1,vmax=1)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
@@ -226,7 +226,7 @@ for f in new_files:
     print '...del COT...'
     plt.figure(35)
     d = cloud.del_COT16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-100,vmax=100)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-100,vmax=100)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
@@ -236,7 +236,7 @@ for f in new_files:
     print '...delta Nd...'
     plt.figure(35)
     d = cloud.delta_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-300,vmax=300)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-300,vmax=300)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
@@ -246,7 +246,7 @@ for f in new_files:
     print '...del Nd...'
     plt.figure(35)
     d = cloud.del_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-1000,vmax=1000)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1000,vmax=1000)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
@@ -427,7 +427,7 @@ for f in new_files:
     print '...delta COT...'
     plt.figure(36)
     d = cloud.delta_COT16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-1,vmax=1)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1,vmax=1)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
@@ -437,7 +437,7 @@ for f in new_files:
     print '...del COT...'
     plt.figure(48)
     d = cloud.del_COT16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-100,vmax=100)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-100,vmax=100)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
@@ -447,7 +447,7 @@ for f in new_files:
     print '...delta Nd...'
     plt.figure(54)
     d = cloud.delta_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-300,vmax=300)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-300,vmax=300)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
@@ -457,7 +457,7 @@ for f in new_files:
     print '...del Nd...'
     plt.figure(60)
     d = cloud.del_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=-1000,vmax=1000)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1000,vmax=1000)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
