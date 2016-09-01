@@ -210,7 +210,7 @@ for f in new_files:
     fig.set_size_inches(13.33,7.5)
     plt.savefig('%s_%s_%s_map_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print '...delta COT...'
-    plt.figure(35)
+    plt.figure(42)
     d = cloud.delta_COT16
     plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1,vmax=1)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
@@ -220,7 +220,7 @@ for f in new_files:
     fig.set_size_inches(13.33,7.5)
     plt.savefig('%s_%s_%s_map_delta_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print '...del COT...'
-    plt.figure(35)
+    plt.figure(49)
     d = cloud.del_COT16
     plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-100,vmax=100)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
@@ -230,7 +230,7 @@ for f in new_files:
     fig.set_size_inches(13.33,7.5)
     plt.savefig('%s_%s_%s_map_del_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print '...delta Nd...'
-    plt.figure(35)
+    plt.figure(56)
     d = cloud.delta_Nd16
     plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-300,vmax=300)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
@@ -240,7 +240,7 @@ for f in new_files:
     fig.set_size_inches(13.33,7.5)
     plt.savefig('%s_%s_%s_map_delta_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print '...del Nd...'
-    plt.figure(35)
+    plt.figure(63)
     d = cloud.del_Nd16
     plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1000,vmax=1000)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
