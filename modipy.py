@@ -2527,3 +2527,655 @@ class nrtMOD06(object):
         cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
         plt.title('E) %s (2.13 %sm - 1.63 %sm)' % (u"\u03B4",u"\u03BC",u"\u03BC"),fontname=font,fontsize=size)
         plt.show()
+
+"""
+Class for NRT MOD06ACAERO/MYD06ACAERO files downloaded from from LANCE (https://lance.modaps.eosdis.nasa.gov/data_products/).
+"""
+
+class nrtACAERO(object):
+    """
+    Create object to analyze from MOD06ACAERO/MYD06ACAERO cloud file downloaded from LANCE (https://lance.modaps.eosdis.nasa.gov/data_products/).
+    
+    ***Created for ORACLES campaign (https://espo.nasa.gov/home/oracles/)***
+    
+    ***Still research-level product***
+        
+    Parameters
+    ----------
+    afile : string
+    M-D06ACAERO cloud file.
+    
+    Methods
+    -------
+    get_ds: Get previously unaccessed dataset from file and save in dictionaries.
+    
+    quick_plot: Plot variables quickly as a check/first look at the data.
+    
+    tri_plot: Pre-defined groupings of three plots meant for use on the ORACLES field campaign.
+    
+    Returns
+    -------
+    jday, year, day : int
+    Julian day, year, calendar day
+    
+    month, time, satellite : string
+    Month, time of passage, satellite (Terra or Aqua)
+    
+    lat, lon : array, array
+    5 km x 5 km latitude and longitude arrays.
+    
+    ds_name : dict
+    Dictionary of named datasets available.
+    
+    ds : dict
+    Dictionary of dataset arrays. Check ds_name for available parameters.
+    
+    Modification history
+    --------------------
+    Written: Michael Diamond, 08/30/2016, Swakopmund, Namibia
+    """
+    
+    def __init__(self,cfile):
+        #Read in file
+        self.file = cfile
+        a = SD.SD(self.file, SDC.READ)
+        #Dictionaries of all defined datasets
+        ds_name = {} #Get full name from abbreviation
+        ds = {} #Get dataset from abbreviation
+        
+        #
+        ###Get geolocation data and date
+        #
+        self.jday = int(self.file[17:20])
+        self.year = int(self.file[13:17])
+    	self.month = cal_day(self.jday,self.year).split()[0]
+    	self.day = int(cal_day(self.jday,self.year).split()[1])
+    	self.time = self.file[21:25]
+        if self.file[1] == 'Y':
+            self.satellite = 'Aqua'
+        elif self.file[1] == 'O':
+            self.satellite = 'Terra'
+        self.lon = a.select('Longitude')[:,:]
+        ds_name['lon'] = 'Longitude'
+        ds['lon'] = self.lon
+        self.lat = a.select('Latitude')[:,:]
+        ds_name['lat'] = 'Latitude'
+        ds['lat'] = self.lat
+        
+        datasets = ['Above_Cloud_AOD','Above_Cloud_AOD_ModAbsAero','Clear_Sky_AOD',\
+        'Cloud_Effective_Radius','Cloud_Effective_Radius_ModAbsAero',\
+        'Cloud_Optical_Thickness','Cloud_Optical_Thickness_ModAbsAero',\
+        'Above_Cloud_AOD_Uncertainty','Above_Cloud_AOD_ModAbsAero_Uncertainty']
+        
+        for dset in datasets:
+            data = a.select('%s' % dset)[:]
+            attrs = a.select('%s' % dset).attributes(full=1)
+            scale = attrs['scale_factor'][0]
+            offset = attrs['add_offset'][0]
+            #_FillValue = attrs["_FillValue"][0] #Why needed? No max/min valid
+            ds_name['%s' % dset] = dset
+            ds['%s' % dset] = scale*(data - offset)
+        
+        #
+        ###Nd
+        #
+        k = .8
+        gam_ad = 2.E-6 #kg/m^4
+        frac_ad = 1
+        gam_eff = gam_ad*frac_ad
+        ds['Nd'] = 10**.5/(4*np.pi*1000**.5)*gam_eff**.5*ds['Cloud_Optical_Thickness']**.5/(ds['Cloud_Effective_Radius']*10**-6)**2.5/k/100.**3
+        ds_name['Nd'] = 'Nd'
+        ds['Nd_ModAbsAero'] = 10**.5/(4*np.pi*1000**.5)*gam_eff**.5*ds['Cloud_Optical_Thickness_ModAbsAero']**.5/(ds['Cloud_Effective_Radius_ModAbsAero']*10**-6)**2.5/k/100.**3
+        ds_name['Nd_ModAbsAero'] = 'Nd_ModAbsAero'       
+        
+        #Finishing touches
+        self.ds_name = ds_name
+        self.ds = ds
+        a.end()
+    
+    #Quickly plot data as check/first pass
+    def quick_plot(self,data='Above_Cloud_AOD',projection='merc'):
+        """
+        Quick plot data for a single MOD06 or MYD06 NRT file. Intended as a check or first pass at data.
+        
+        Parameters
+        ----------
+        data : string
+        Lookup key for "ds" dictionary. See dictionary for choices.
+        
+        projection : string
+        Use 'merc' for mercator, 'global' for global plot (kav7), 'nsper' for Terra/Aqua's eye view.
+        
+        Returns
+        -------
+        Plot of data subsampled to 5 km x 5 km resolution.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 8/9/2016, Seattle, WA
+        """
+        if not type(data) == str:
+            print 'Error: Data must be a valid key to the "ds" dictionary.'
+            return
+        plt.figure()
+        plt.clf()
+        font = 'Arial'
+        size = 20
+        max_lon = self.lon.max()
+        max_lat = self.lat.max()
+        min_lon = self.lon.min()
+        min_lat = self.lat.min()
+        if projection == 'merc':
+            m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+            urcrnrlat=max_lat+1,projection='merc',resolution='l')
+            m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+            m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        elif projection == 'global':
+            m = Basemap(lon_0=0,projection='kav7',resolution='c')
+            m.drawparallels(np.arange(-180,180,15),labels=[1,0,0,0])
+            m.drawmeridians(np.arange(0,360,45),labels=[1,1,0,1])
+        elif projection == 'satellite':
+            m = Basemap(projection='nsper',lon_0=self.lon.mean(),lat_0=self.lat.mean(),\
+            resolution='l',satellite_height=705000)
+            m.bluemarble(alpha=.75)
+        else:
+            print "Error: Projection must be 'merc', 'global', or 'satellite'."
+            return
+        m.drawcoastlines()
+        m.drawcountries()
+        d = self.ds['%s' % data]
+        #Might make these customized in future, for now generic
+        cmap = 'viridis'
+        m.pcolormesh(self.lon,self.lat,d[:np.shape(self.lon)[0],:np.shape(self.lat)[1]],\
+        shading='gouraud',cmap=cmap,latlon=True)
+        cbar = m.colorbar()
+        cbar.ax.tick_params(labelsize=size-4) 
+        plt.title('%s for %s %s, %s from %s' % \
+        (self.ds_name['%s' % data],self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
+    
+    def AOD_plot(self):
+        """
+        Plot both ACAODs and clear sky AOD.
+        
+        Returns
+        -------
+        Figure with three subplots.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 8/30/2016, Swakopmund, Namibia
+        """
+        plt.clf()
+        font = 'Arial'
+        size = 16
+        lat = self.lat
+        lon = self.lon
+        max_lon = lon.max()
+        max_lat = lat.max()
+        min_lon = lon.min()
+        min_lat = lat.min()
+        plt.subplot(1,3,1)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0],fontsize=size-2,fontname=font)
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1],fontsize=size-2,fontname=font)
+        x, y = m(min_lon, max_lat-1)
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        plt.text(x,y,'%s %s, %s' % (self.month, self.day, self.year),\
+        bbox=dict(facecolor='w', alpha=1),fontname=font,fontsize=size-4)
+        key = 'Above_Cloud_AOD'
+        t = 'ACAOD'
+        c = 'inferno_r'
+        vmin = 0
+        vmed = 2.5
+        vmax = 5
+        d = self.ds['%s' % key]
+        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+        cmap=c,latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2., vmed, (vmed+vmax)/2., vmax],\
+        location='bottom',pad=.35)
+        cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2., vmed, (vmed+vmax)/2., vmax])
+        cbar.ax.tick_params(labelsize=size-4)
+        plt.title('A) %s' % t,fontname=font,fontsize=size)
+        
+        plt.subplot(1,3,2)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0],fontsize=size-2,fontname=font)
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1],fontsize=size-2,fontname=font)
+        x, y = m(min_lon, max_lat-1)
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        plt.text(x,y,'Time: %s' % (self.time),bbox=dict(facecolor='w', alpha=1),\
+        fontname=font,fontsize=size-4)
+        key = 'Above_Cloud_AOD_ModAbsAero'
+        t = 'ACAOD (ModAbsAero)'
+        c = 'inferno_r'
+        vmin = 0
+        vmed = 2.5
+        vmax = 5
+        d = self.ds['%s' % key]
+        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+        cmap=c,latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2., vmed, (vmed+vmax)/2., vmax],\
+        location='bottom',pad=.35)
+        cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2., vmed, (vmed+vmax)/2., vmax])
+        cbar.ax.tick_params(labelsize=size-4)
+        plt.title('B) %s' % t,fontname=font,fontsize=size)
+        
+        plt.subplot(1,3,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0],fontsize=size-2,fontname=font)
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1],fontsize=size-2,fontname=font)
+        x, y = m(min_lon, max_lat-1)
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        plt.text(x,y,'Satellite: %s' % (self.satellite),bbox=dict(facecolor='w', alpha=1),\
+        fontname=font,fontsize=size-4)
+        key = 'Clear_Sky_AOD'
+        t = 'Clear Sky AOD'
+        c = 'inferno_r'
+        vmin = 0
+        vmed = 2.5
+        vmax = 5
+        d = self.ds['%s' % key]
+        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+        cmap=c,latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2., vmed, (vmed+vmax)/2., vmax],\
+        location='bottom',pad=.35)
+        cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2., vmed, (vmed+vmax)/2., vmax])
+        cbar.ax.tick_params(labelsize=size-4)
+        plt.title('C) %s' % t,fontname=font,fontsize=size)
+        
+        plt.show()
+
+    def five_plot(self,data='ref'):
+        """
+        Make plot showing variable at each wavelength and biases
+        
+        Parameters
+        ----------
+        data : string
+        Choice of 'cot','ref', or 'Nd'. Default is effective radius.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 08/29/2016, Swakopmund, Namibia
+        """
+        plt.clf()
+        font = 'Arial'
+        size = 15
+        if data == 'ref':
+            dA = self.ref16
+            dB = self.ref
+            dC = self.ref37
+            dD = self.delta_ref16
+            dE = self.del_ref16
+            vABC = (4,14,24)
+            vD = (-6,0,6)
+            vE = (-500,0,500)
+            kABC = 'ref'
+            kD = 'delta_ref16'
+            kE = 'del_ref16'
+        elif data == 'cot':
+            dA = self.COT16
+            dB = self.COT
+            dC = self.COT37
+            dD = self.delta_COT16
+            dE = self.del_COT16
+            vABC = (0,16,32)
+            vD = (-1,0,1)
+            vE = (-100,0,100)
+            kABC = 'COT'
+            kD = 'delta_COT16'
+            kE = 'del_COT16'
+        elif data == 'Nd':
+            dA = self.Nd16
+            dB = self.Nd
+            dC = self.Nd37
+            dD = self.delta_Nd16
+            dE = self.del_Nd16
+            vABC = (0,500,1000)
+            vD = (-300,0,300)
+            vE = (-1000,0,1000)
+            kABC = 'Nd'
+            kD = 'delta_Nd16'
+            kE = 'del_Nd16'
+        else:
+            print 'Error: Invalid data input.'
+            return
+        #
+        ###Variables at different wavelengths
+        #
+        key = kABC
+        vmin = vABC[0]
+        vmed = vABC[1]
+        vmax = vABC[-1]
+        lat = self.lat
+        lon = self.lon
+        max_lon = lon.max()
+        max_lat = lat.max()
+        min_lon = lon.min()
+        min_lat = lat.min()
+        #1.63 micron band
+        plt.subplot(2,3,1)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'%s %s, %s' % (self.month,self.day, self.year),bbox=dict(facecolor='w', alpha=1),\
+        fontname=font,fontsize=size-2)
+        d = dA[::5,::5]
+        if data == 'Nd': 
+            vmin = 10
+            vmax = 1000
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cbar = m.colorbar(ticks=[1,10,100,1000])
+            cbar.ax.set_xticklabels([1,10,100,1000])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[per cc]',fontname=font,fontsize=size-2)
+        else:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,vmin=vmin,vmax=vmax)
+            cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('A) 1.63 %sm/860 nm channels' % (u"\u03BC"),fontname=font,fontsize=size)
+        #2.13 micron band
+        plt.subplot(2,3,2)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[0,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Time: %s' % (self.time),bbox=dict(facecolor='w', alpha=1),\
+        fontname=font,fontsize=size-2)
+        d = dB[::5,::5]
+        if data == 'Nd': 
+            vmin = 10
+            vmax = 1000
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cbar = m.colorbar(ticks=[1,10,100,1000])
+            cbar.ax.set_xticklabels([1,10,100,1000])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[per cc]',fontname=font,fontsize=size-2)
+        else:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,vmin=vmin,vmax=vmax)
+            cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('B) Standard %s retrieval' % (key),fontname=font,fontsize=size)
+        #3.7 micron band
+        plt.subplot(2,3,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[0,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        x, y = m(min_lon, max_lat-1)
+        plt.text(x,y,'Satellite: %s' % (self.satellite),bbox=dict(facecolor='w', alpha=1),\
+        fontname=font,fontsize=size-2)
+        d = dC[::5,::5]
+        if data == 'Nd': 
+            vmin = 10
+            vmax = 1000
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cbar = m.colorbar(ticks=[1,10,100,1000])
+            cbar.ax.set_xticklabels([1,10,100,1000])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[per cc]',fontname=font,fontsize=size-2)
+        else:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='viridis',latlon=True,vmin=vmin,vmax=vmax)
+            cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+            cbar.ax.tick_params(labelsize=size-4)
+            cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('C) 3.7 %sm/860 nm channels' % (u"\u03BC"),fontname=font,fontsize=size)
+        #
+        ###Bias plots
+        #
+        lon = zoom(lon,5.)
+        lat = zoom(lat,5.)
+        #Delta
+        key = kD
+        vmin = vD[0]
+        vmed = vD[1]
+        vmax = vD[-1]
+        plt.subplot(2,2,3)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        d = dD
+        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+        cmap='RdYlBu_r',latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+        cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+        cbar.ax.tick_params(labelsize=size-4)
+        cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('D) %s (2.13 %sm - 1.63 %sm)' % (u"\u0394",u"\u03BC",u"\u03BC"),fontname=font,fontsize=size)
+        #Del
+        key = kE
+        vmin = vE[0]
+        vmed = vE[1]
+        vmax = vE[-1]
+        plt.subplot(2,2,4)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        d = dE
+        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+        cmap='RdYlBu_r',latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+        cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
+        cbar.ax.tick_params(labelsize=size-4)
+        cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('E) %s (2.13 %sm - 1.63 %sm)' % (u"\u03B4",u"\u03BC",u"\u03BC"),fontname=font,fontsize=size)
+        plt.show()
+
+class nrt_comp(object):
+    """
+    Compare Meyer et al. 2015 ACAOD with nrtMOD06 biases
+    
+    ***Written for use on ORACLES field campaign (https://espo.nasa.gov/home/oracles/)***
+    
+    Parameters
+    ----------
+    cfile : string
+    NRT MOD06_L2 file.
+    
+    afile : string
+    NRT MOD06ACAERO file.
+    
+    *Files should be from same time*
+    
+    Modification history
+    --------------------
+    Written: Michael Diamond, 08/30/2016, Swakopmund, Namibia
+    Modified: Michael Diamond, 08/31/2016, P3 flying over SEA
+        -Finished plots
+    """
+    
+    def __init__(self,cfile,afile):
+        #Read in files
+        c = nrtMOD06(cfile)
+        a = nrtACAERO(afile)
+        self.lon = a.lon
+        self.lat = a.lat
+        self.time = c.time
+        self.month = c.month
+        self.day = c.day
+        self.jday = c.jday
+        self.year = c.year
+        self.satellite = c.satellite
+        Delta = u"\u0394"
+        Del = u"\u03B4"
+        micron = u"\u03BC"+'m'
+        
+        #Make dictionaries
+        self.ds = {}
+        self.name = {}
+        self.cmap = {}
+        self.v = {}
+        self.units = {}
+        self.keys = []
+        
+        #Get ACAOD data
+        key = 'ACAOD'
+        ACAOD = a.ds['Above_Cloud_AOD']
+        ACAOD = ma.MaskedArray(ACAOD,a.ds['Above_Cloud_AOD_Uncertainty'] > 100,fill_value=0).filled()
+        invalid = a.ds['Cloud_Optical_Thickness']<4
+        ACAOD = ma.MaskedArray(ACAOD, invalid)
+        self.ds['%s' % key] = ACAOD
+        self.name['%s' % key] = 'ACAOD'
+        self.cmap['%s' % key] = 'inferno_r'
+        self.v['%s' % key] = (0,1.5,3)
+        self.units['%s' % key] = 'unitless'
+        self.keys.append(key)
+        
+        #Get delta ref data
+        key = 'delta_ref16'
+        self.ds['%s' % key] = c.ds['%s' % key]
+        self.name['%s' % key] = '%sref' % Delta
+        self.cmap['%s' % key] = 'RdYlBu_r'
+        self.v['%s' % key] = (-6,0,6)
+        self.units['%s' % key] = '%s' % micron
+        self.keys.append(key)
+        
+        #Get del ref data
+        key = 'del_ref16'
+        self.ds['%s' % key] = c.ds['%s' % key]
+        self.name['%s' % key] = '%sref' % Del
+        self.cmap['%s' % key] = 'RdYlBu_r'
+        self.v['%s' % key] = (-500,0,500)
+        self.units['%s' % key] = 'per mil'
+        self.keys.append(key)
+        
+        #Get delta COT data
+        key = 'delta_COT16'
+        self.ds['%s' % key] = c.ds['%s' % key]
+        self.name['%s' % key] = '%sCOT' % Delta
+        self.cmap['%s' % key] = 'RdYlBu_r'
+        self.v['%s' % key] = (-1,0,1)
+        self.units['%s' % key] = 'unitless'
+        self.keys.append(key)
+        
+        #Get del COT data
+        key = 'del_COT16'
+        self.ds['%s' % key] = c.ds['%s' % key]
+        self.name['%s' % key] = '%sCOT' % Del
+        self.cmap['%s' % key] = 'RdYlBu_r'
+        self.v['%s' % key] = (-100,0,100)
+        self.units['%s' % key] = 'per mil'
+        self.keys.append(key)
+        
+        #Get delta Nd data
+        key = 'delta_Nd16'
+        self.ds['%s' % key] = c.ds['%s' % key]
+        self.name['%s' % key] = '%sNd' % Delta
+        self.cmap['%s' % key] = 'RdYlBu'
+        self.v['%s' % key] = (-300,0,300)
+        self.units['%s' % key] = '%s' % micron
+        self.keys.append(key)
+        
+        #Get del Nd data
+        key = 'del_Nd16'
+        self.ds['%s' % key] = c.ds['%s' % key]
+        self.name['%s' % key] = '%sNd' % Del
+        self.cmap['%s' % key] = 'RdYlBu'
+        self.v['%s' % key] = (-1000,0,1000)
+        self.units['%s' % key] = 'per mil'
+        self.keys.append(key)        
+        
+    def compare(self,key='delta_ref'):
+        """
+        Compare ACAOD with bias given by the key.
+        
+        Parameters
+        ----------
+        key : string
+        Name of bias to plot.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 08/30/2016, Swakopmund, Namibia
+        """
+        micron = u"\u03BC"+'m'
+        plt.clf()
+        font = 'Arial'
+        size = 20
+        max_lon = self.lon.max()
+        max_lat = self.lat.max()
+        min_lon = self.lon.min()
+        min_lat = self.lat.min()
+        #ACAOD
+        vmin = self.v['ACAOD'][0]
+        vmed = self.v['ACAOD'][1]
+        vmax = self.v['ACAOD'][-1]
+        cmap = self.cmap['ACAOD']
+        plt.subplot(1,2,1)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0],fontsize=size-2,fontname=font)
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1],fontsize=size-2,fontname=font)
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.pcolormesh(self.lon,self.lat,self.ds['ACAOD'],cmap=cmap,vmin=vmin,vmax=vmax,latlon=True)
+        ticks = [0,.5,1,1.5,2,2.5,3]
+        cbar = m.colorbar(ticks=ticks,extend='max')
+        cbar.ax.set_xticklabels(ticks)
+        cbar.ax.tick_params(labelsize=size-4)
+        plt.title('A) ACAOD on %s %s, %s, from %s' % (self.month,self.day,self.year,self.satellite),\
+        fontname=font,fontsize=size)
+        #Bias
+        bias = self.ds[key]
+        vmin = self.v[key][0]
+        vmed = self.v[key][1]
+        vmax = self.v[key][-1]
+        cmap = self.cmap[key]
+        plt.subplot(1,2,2)
+        m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+        urcrnrlat=max_lat+1,projection='merc',resolution='l')
+        m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0],fontsize=size-2,fontname=font)
+        m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1],fontsize=size-2,fontname=font)
+        m.drawcoastlines()
+        m.drawcountries()
+        m.fillcontinents('k',zorder=0)
+        m.pcolormesh(self.lon,self.lat,bias,cmap=cmap,vmin=vmin,vmax=vmax,latlon=True)
+        ticks = [vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax]
+        cbar = m.colorbar(ticks=ticks,extend='both')
+        cbar.ax.set_xticklabels(ticks)
+        cbar.ax.tick_params(labelsize=size-4)
+        cbar.set_label('[%s]' % self.units['%s' % key],fontname=font,fontsize=size-2)
+        plt.title('B) %s (2.13 %s - 1.63 %s)' % (self.name[key],micron,micron), \
+        fontname=font,fontsize=size)
+        plt.show()

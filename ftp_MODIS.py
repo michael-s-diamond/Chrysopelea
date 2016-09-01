@@ -105,7 +105,6 @@ for f in files:
 
 if ftp_worked: ftp.quit()
 
-
 directory = '/Users/michaeldiamond/Documents/oracles/terra/%s' % jday
 os.chdir(directory)
 current_images = os.listdir(directory)
@@ -118,9 +117,6 @@ for f in current_files:
         ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
     else: pass
-
-rsync = False
-if len(new_files) > 0: rsync = True
 
 #Make plots
 for f in new_files:
@@ -256,6 +252,114 @@ for f in new_files:
     print 'Done!\n'
     
 #
+###Terra ACAERO
+#
+print 'Checking for new Terra ACAERO data...'
+fdir = '/Users/michaeldiamond/Documents/oracles_files/terra/%s' % jday
+os.chdir(fdir)
+current_files = os.listdir(fdir)
+new_files = []
+path = 'allData/6/MOD06ACAERO/%s/%s/' % (year,jday)
+files = []
+
+#Try to access
+ftp_worked = False
+try:
+    ftp = ftplib.FTP(host,user,passwd,timeout=60)
+    ftp.cwd(path)
+    ftp.set_pasv(True)
+
+    directory = ftp.pwd()
+    print 'Accessing directory %s%s\n' % (host,directory)
+
+    files = ftp.nlst()
+    ftp_worked = True
+except: print 'Terra ftp at %s failed...\n' % now
+
+files.reverse()
+for f in files:
+    if 8 <= int(f[18:20]) <= 12:
+        if f not in current_files:
+            if f[-1] == 't':
+                ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
+                #Check geolocation
+                fi = open(f,'r')
+                read = fi.read()
+                fi.close()
+                r = read.split()
+                i_e = r.index('EASTBOUNDINGCOORDINATE')+6
+                e = float(r[i_e])
+                i_w = r.index('WESTBOUNDINGCOORDINATE')+6
+                w = float(r[i_w])
+                i_n = r.index('NORTHBOUNDINGCOORDINATE')+6
+                n = float(r[i_n])
+                i_s = r.index('SOUTHBOUNDINGCOORDINATE')+6
+                s = float(r[i_s])
+                #Reject files outside of ORACLES study region
+                too_north = s > -4.5
+                too_south = n < -25.5
+                bad_lat = np.logical_or(too_north,too_south)
+                too_east = w > 15.5
+                too_west = e < -15.5
+                bad_lon = np.logical_or(too_east,too_west)
+                if bad_lat or bad_lon: files.remove(f[0:34])
+            else:
+                #Get file
+                print 'Getting file %s...' % f
+                ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
+                new_files.append(f)
+                print 'Done!\n'
+        else:
+            files.remove(f[0:34])
+
+if ftp_worked: ftp.quit()
+
+directory = '/Users/michaeldiamond/Documents/oracles/terra/%s' % jday
+os.chdir(directory)
+current_images = os.listdir(directory)
+os.chdir(fdir)
+
+#Add to new_files if things got overlooked before and no image was made
+for f in current_files:
+    if f[-1] == 'f':
+        time = f[21:25]
+        ref_im = '%s_%s_%s_%s_aod.png' % (year,month,day,time)
+        if ref_im not in current_images: new_files.append(f)
+    else: pass
+
+#Make plots
+for f in new_files:
+    #Read in file
+    os.chdir(fdir)
+    aero = mod.nrtACAERO(f)
+    m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
+    lon, lat = m(lon, lat)
+    #Move to image directory
+    os.chdir(directory)
+    #Triplots for each file
+    print 'Making plots for %s...' % f
+    plt.figure(3)
+    print '...aod...'
+    plt.clf()
+    aero.AOD_plot()
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_%s_aod' % (aero.year,mod.month_num[aero.month],aero.day,aero.time),dpi=125)
+    #Now add tile to daily maps
+    print 'Adding data to daily maps...'
+    print '...AOD...'
+    plt.figure(100)
+    d = aero.ACAOD
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='inferno_r',vmin=0,vmax=5)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_ACAOD' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print 'Done!\n'
+
+#
 ###Aqua cloud
 #
 print 'Checking for new Aqua data...'
@@ -330,8 +434,6 @@ for f in current_files:
         ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
     else: pass
-
-if len(new_files) > 0: rsync = True
 
 #Make plots
 for f in new_files:
@@ -466,8 +568,115 @@ for f in new_files:
     plt.savefig('%s_%s_%s_map_del_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
     print 'Done!\n'
 
-"""
-if rsync:
-    try: os.system('rsync -a /Users/michaeldiamond/Documents/oracles diamond2@olympus.atmos.washington.edu:~/public_html')
-    except: print 'Rsync failed at %s' % now
-"""
+#
+###Aqua ACAERO
+#
+print 'Checking for new Aqua ACAERO data...'
+fdir = '/Users/michaeldiamond/Documents/oracles_files/aqua/%s' % jday
+os.chdir(fdir)
+current_files = os.listdir(fdir)
+new_files = []
+path = 'allData/6/MYD06ACAERO/%s/%s/' % (year,jday)
+files = []
+
+#Try to access
+ftp_worked = False
+try:
+    ftp = ftplib.FTP(host,user,passwd,timeout=60)
+    ftp.cwd(path)
+    ftp.set_pasv(True)
+
+    directory = ftp.pwd()
+    print 'Accessing directory %s%s\n' % (host,directory)
+
+    files = ftp.nlst()
+    ftp_worked = True
+except: print 'Aqua ACAERO ftp at %s failed...\n' % now
+
+files.reverse()
+for f in files:
+    if 8 <= int(f[18:20]) <= 12:
+        if f not in current_files:
+            if f[-1] == 't':
+                ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
+                #Check geolocation
+                fi = open(f,'r')
+                read = fi.read()
+                fi.close()
+                r = read.split()
+                i_e = r.index('EASTBOUNDINGCOORDINATE')+6
+                e = float(r[i_e])
+                i_w = r.index('WESTBOUNDINGCOORDINATE')+6
+                w = float(r[i_w])
+                i_n = r.index('NORTHBOUNDINGCOORDINATE')+6
+                n = float(r[i_n])
+                i_s = r.index('SOUTHBOUNDINGCOORDINATE')+6
+                s = float(r[i_s])
+                #Reject files outside of ORACLES study region
+                too_north = s > -4.5
+                too_south = n < -25.5
+                bad_lat = np.logical_or(too_north,too_south)
+                too_east = w > 15.5
+                too_west = e < -15.5
+                bad_lon = np.logical_or(too_east,too_west)
+                if bad_lat or bad_lon: files.remove(f[0:34])
+            else:
+                #Get file
+                print 'Getting file %s...' % f
+                ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
+                new_files.append(f)
+                print 'Done!\n'
+        else:
+            files.remove(f[0:34])
+
+if ftp_worked: ftp.quit()
+
+directory = '/Users/michaeldiamond/Documents/oracles/aqua/%s' % jday
+os.chdir(directory)
+current_images = os.listdir(directory)
+os.chdir(fdir)
+
+#Add to new_files if things got overlooked before and no image was made
+for f in current_files:
+    if f[-1] == 'f':
+        time = f[21:25]
+        ref_im = '%s_%s_%s_%s_aod.png' % (year,month,day,time)
+        if ref_im not in current_images: new_files.append(f)
+    else: pass
+
+#Make plots
+for f in new_files:
+    #Read in file
+    os.chdir(fdir)
+    aero = mod.nrtACAERO(f)
+    m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
+    lon, lat = m(lon, lat)
+    #Move to image directory
+    os.chdir(directory)
+    #Triplots for each file
+    print 'Making plots for %s...' % f
+    plt.figure(3)
+    print '...aod...'
+    plt.clf()
+    aero.AOD_plot()
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_%s_aod' % (aero.year,mod.month_num[aero.month],aero.day,aero.time),dpi=125)
+    #Now add tile to daily maps
+    print 'Adding data to daily maps...'
+    print '...AOD...'
+    plt.figure(100)
+    d = aero.ACAOD
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='inferno_r',vmin=0,vmax=5)
+    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
+    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
+    m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+    fig = plt.gcf()
+    fig.set_size_inches(13.33,7.5)
+    plt.savefig('%s_%s_%s_map_ACAOD' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    print 'Done!\n'
+
+print 'Done!'
+
+
+
