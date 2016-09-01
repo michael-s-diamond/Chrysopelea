@@ -112,7 +112,7 @@ os.chdir(fdir)
 
 #Add to new_files if things got overlooked before and no image was made
 for f in current_files:
-    if f[-1] == 'f':
+    if f[-1] == 'f' and f[6] == 'L':
         time = f[18:22]
         ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
@@ -278,7 +278,7 @@ except: print 'Terra ftp at %s failed...\n' % now
 
 files.reverse()
 for f in files:
-    if 8 <= int(f[18:20]) <= 12:
+    if 8 <= int(f[21:23]) <= 12:
         if f not in current_files:
             if f[-1] == 't':
                 ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
@@ -302,7 +302,7 @@ for f in files:
                 too_east = w > 15.5
                 too_west = e < -15.5
                 bad_lon = np.logical_or(too_east,too_west)
-                if bad_lat or bad_lon: files.remove(f[0:34])
+                if bad_lat or bad_lon: files.remove(f[0:37])
             else:
                 #Get file
                 print 'Getting file %s...' % f
@@ -310,7 +310,7 @@ for f in files:
                 new_files.append(f)
                 print 'Done!\n'
         else:
-            files.remove(f[0:34])
+            files.remove(f[0:37])
 
 if ftp_worked: ftp.quit()
 
@@ -321,7 +321,7 @@ os.chdir(fdir)
 
 #Add to new_files if things got overlooked before and no image was made
 for f in current_files:
-    if f[-1] == 'f':
+    if f[-1] == 'f' and f[5] == 'A':
         time = f[21:25]
         ref_im = '%s_%s_%s_%s_aod.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
@@ -333,7 +333,7 @@ for f in new_files:
     os.chdir(fdir)
     aero = mod.nrtACAERO(f)
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
-    lon, lat = m(lon, lat)
+    lon, lat = m(aero.lon, aero.lat)
     #Move to image directory
     os.chdir(directory)
     #Triplots for each file
@@ -349,14 +349,14 @@ for f in new_files:
     print 'Adding data to daily maps...'
     print '...AOD...'
     plt.figure(100)
-    d = aero.ACAOD
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='inferno_r',vmin=0,vmax=5)
+    d = aero.ds['Above_Cloud_AOD']
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='inferno_r',vmin=0,vmax=3)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_ACAOD' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    plt.savefig('%s_%s_%s_map_ACAOD' % (aero.year,mod.month_num[aero.month],aero.day),dpi=150)
     print 'Done!\n'
 
 #
@@ -429,7 +429,7 @@ os.chdir(fdir)
 
 #Add to new_files if things got overlooked before and no image was made
 for f in current_files:
-    if f[-1] == 'f':
+    if f[-1] == 'f' and f[6] == 'L':
         time = f[18:22]
         ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
@@ -595,7 +595,7 @@ except: print 'Aqua ACAERO ftp at %s failed...\n' % now
 
 files.reverse()
 for f in files:
-    if 8 <= int(f[18:20]) <= 12:
+    if 12 <= int(f[21:23]) <= 15:
         if f not in current_files:
             if f[-1] == 't':
                 ftp.retrbinary('RETR %s' % f, open(f, 'wb').write)
@@ -619,7 +619,7 @@ for f in files:
                 too_east = w > 15.5
                 too_west = e < -15.5
                 bad_lon = np.logical_or(too_east,too_west)
-                if bad_lat or bad_lon: files.remove(f[0:34])
+                if bad_lat or bad_lon: files.remove(f[0:37])
             else:
                 #Get file
                 print 'Getting file %s...' % f
@@ -627,7 +627,7 @@ for f in files:
                 new_files.append(f)
                 print 'Done!\n'
         else:
-            files.remove(f[0:34])
+            files.remove(f[0:37])
 
 if ftp_worked: ftp.quit()
 
@@ -638,7 +638,7 @@ os.chdir(fdir)
 
 #Add to new_files if things got overlooked before and no image was made
 for f in current_files:
-    if f[-1] == 'f':
+    if f[-1] == 'f'  and f[5] == 'A':
         time = f[21:25]
         ref_im = '%s_%s_%s_%s_aod.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
@@ -650,7 +650,7 @@ for f in new_files:
     os.chdir(fdir)
     aero = mod.nrtACAERO(f)
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
-    lon, lat = m(lon, lat)
+    lon, lat = m(aero.lon, aero.lat)
     #Move to image directory
     os.chdir(directory)
     #Triplots for each file
@@ -665,15 +665,15 @@ for f in new_files:
     #Now add tile to daily maps
     print 'Adding data to daily maps...'
     print '...AOD...'
-    plt.figure(100)
-    d = aero.ACAOD
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='inferno_r',vmin=0,vmax=5)
+    plt.figure(101)
+    d = aero.ds['Above_Cloud_AOD']
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='inferno_r',vmin=0,vmax=3)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_ACAOD' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    plt.savefig('%s_%s_%s_map_ACAOD' % (aero.year,mod.month_num[aero.month],aero.day),dpi=150)
     print 'Done!\n'
 
 print 'Done!'
