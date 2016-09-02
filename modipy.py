@@ -1304,6 +1304,9 @@ class nrtMOD06(object):
     
     tri_plot: Pre-defined groupings of three plots meant for use on the ORACLES field campaign.
     
+    five_plot: Pre-defined groupings of five plots meant for use on the ORACLES field campaign.
+        -value at each channel plus delta and del biases
+    
     Returns
     -------
     jday, year, day : int

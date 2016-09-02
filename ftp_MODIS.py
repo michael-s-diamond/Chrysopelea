@@ -676,7 +676,6 @@ for f in new_files:
     plt.savefig('%s_%s_%s_map_ACAOD' % (aero.year,mod.month_num[aero.month],aero.day),dpi=150)
     print 'Done!\n'
 
-print 'Done!'
 
 
 
