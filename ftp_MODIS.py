@@ -247,7 +247,7 @@ for f in new_files:
     print '...delta Nd...'
     plt.figure(56)
     d = cloud.delta_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-300,vmax=300)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu',vmin=-300,vmax=300)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
@@ -259,7 +259,7 @@ for f in new_files:
     print '...del Nd...'
     plt.figure(63)
     d = cloud.del_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1000,vmax=1000)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu',vmin=-1000,vmax=1000)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
@@ -584,7 +584,7 @@ for f in new_files:
     print '...delta Nd...'
     plt.figure(54)
     d = cloud.delta_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-300,vmax=300)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu',vmin=-300,vmax=300)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
@@ -596,7 +596,7 @@ for f in new_files:
     print '...del Nd...'
     plt.figure(60)
     d = cloud.del_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1000,vmax=1000)
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu',vmin=-1000,vmax=1000)
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
