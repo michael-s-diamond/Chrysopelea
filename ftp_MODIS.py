@@ -17,6 +17,7 @@ import ftplib
 import os
 os.chdir('/Users/michaeldiamond/GitHub/Chrysopelea')
 import modipy as mod
+reload(mod)
 os.chdir('/Users/michaeldiamond/')
 from login import u, p
 import datetime

@@ -12,6 +12,7 @@ import os
 os.chdir('/Users/michaeldiamond/GitHub/Chrysopelea')
 import modipy as mod
 import sevipy as sev
+reload(sev)
 os.chdir('/Users/michaeldiamond/Documents/')
 import datetime
 import matplotlib.pylab as plt

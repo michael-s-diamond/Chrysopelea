@@ -377,6 +377,9 @@ class cloud(object):
     Modification history
     --------------------
     Written (v.1.0): Michael Diamond, 8/16/2016, Seattle, WA
+    Modified (v. 1.1): Michael Diamond, 9/2/2016, Swakopmund, Namibia
+        -Updated flight path
+        -Made Ztop/Zbottom in feet
     """
     
     def __init__(self,fn):
@@ -454,8 +457,10 @@ class cloud(object):
         Modification history
         --------------------
         Written: Michael Diamond, 08/16/2016, Seattle, WA
-        Modified: Michael Diamond, 08/21/2016
+        Modified: Michael Diamond, 08/21/2016, Seattle, WA
            -Added ORACLES routine flight plan, Walvis Bay (orange), and Ascension Island
+        Modified: Michael Diamond, 09/02/2016, Swakopmund, Namibia
+            -Updated flihgt track
         """
         plt.clf()
         size = 16
