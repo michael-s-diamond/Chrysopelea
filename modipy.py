@@ -2403,10 +2403,12 @@ class nrtMOD06(object):
         fontname=font,fontsize=size-2)
         d = dA[::5,::5]
         if data == 'Nd': 
-            vmin = 10
+            m.drawmapboundary(fill_color='steelblue')
+            m.fillcontinents(color='floralwhite',lake_color='steelblue',zorder=0)
+            vmin = 1
             vmax = 1000
             m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
-            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cmap='cubehelix',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
             cbar = m.colorbar(ticks=[1,10,100,1000])
             cbar.ax.set_xticklabels([1,10,100,1000])
             cbar.ax.tick_params(labelsize=size-4)
@@ -2433,10 +2435,12 @@ class nrtMOD06(object):
         fontname=font,fontsize=size-2)
         d = dB[::5,::5]
         if data == 'Nd': 
-            vmin = 10
+            m.drawmapboundary(fill_color='steelblue')
+            m.fillcontinents(color='floralwhite',lake_color='steelblue',zorder=0)
+            vmin = 1
             vmax = 1000
             m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
-            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cmap='cubehelix',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
             cbar = m.colorbar(ticks=[1,10,100,1000])
             cbar.ax.set_xticklabels([1,10,100,1000])
             cbar.ax.tick_params(labelsize=size-4)
@@ -2463,10 +2467,12 @@ class nrtMOD06(object):
         fontname=font,fontsize=size-2)
         d = dC[::5,::5]
         if data == 'Nd': 
-            vmin = 10
+            m.drawmapboundary(fill_color='steelblue')
+            m.fillcontinents(color='floralwhite',lake_color='steelblue',zorder=0)
+            vmin = 1
             vmax = 1000
             m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
-            cmap='viridis',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
+            cmap='cubehelix',latlon=True,norm = LogNorm(vmin=vmin, vmax=vmax))
             cbar = m.colorbar(ticks=[1,10,100,1000])
             cbar.ax.set_xticklabels([1,10,100,1000])
             cbar.ax.tick_params(labelsize=size-4)
