@@ -78,7 +78,7 @@ for f in new_files:
                 os.chdir(directory)
                 #Color ratio for each file pair
                 print 'Making CR plots for %s...' % f
-                plt.figure(100)
+                plt.figure(1)
                 cr.merc()
                 fig = plt.gcf()
                 fig.set_size_inches(13.33,7.5)
@@ -100,7 +100,7 @@ for f in new_files:
                 print 'Making plots for %s...' % fc
                 for var in ['Re','Nd','Tau','Pbot','Ptop','Ztf','Zbf']:
                     print '...%s...' % var
-                    plt.figure(100)
+                    plt.figure(1)
                     cloud.plot(var)
                     fig = plt.gcf()
                     fig.set_size_inches(13.33,7.5)
@@ -120,7 +120,7 @@ for f in new_files:
                 print 'Making plots for %s...' % fa
                 for var in ['AOD','ATYP']:
                     print '...%s...' % var
-                    plt.figure(100)
+                    plt.figure(1)
                     aero.plot(var)
                     fig = plt.gcf()
                     fig.set_size_inches(13.33,7.5)

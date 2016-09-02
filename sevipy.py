@@ -594,6 +594,8 @@ class aero(object):
         Written: Michael Diamond, 08/16/2016, Seattle, WA
         Modified: Michael Diamond, 08/21/2016
            -Added ORACLES routine flight plan, Walvis Bay (orange), and Ascension Island
+        Modified: Michael Diamond, 09/02/2016, Swakopmund, Namibia
+            -Updated flight track
         """
         plt.clf()
         size = 16
