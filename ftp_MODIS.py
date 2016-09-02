@@ -112,7 +112,7 @@ os.chdir(fdir)
 
 #Add to new_files if things got overlooked before and no image was made
 for f in current_files:
-    if f[-1] == 'f':
+    if f[-1] == 'f' and f[6] == 'L':
         time = f[18:22]
         ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
