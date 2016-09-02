@@ -98,7 +98,7 @@ for f in new_files:
                 os.chdir(directory)
                 #Effective radius for each file pair
                 print 'Making plots for %s...' % fc
-                for var in ['Re','Nd','Tau','Pbot','Ptop']:
+                for var in ['Re','Nd','Tau','Pbot','Ptop','Ztf','Zbf']:
                     print '...%s...' % var
                     plt.figure(100)
                     cloud.plot(var)
