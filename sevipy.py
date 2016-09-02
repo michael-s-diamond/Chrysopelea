@@ -6,6 +6,8 @@ Modification history
 Written (v.1.0): Michael Diamond, 08/06/2016, Seattle, WA
 Modified (v.1.1): Michael Diamond, 08/16/2016, Seattle, WA
     -Created object for cloud properties file
+Modified (v.1.2): Michael Diamond, 09/02/2016, Swakopmund, Namibia
+    -Updated flight track and Nd plots
 """
 
 #Import libraries
@@ -14,6 +16,7 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib.pylab as plt
 from mpl_toolkits.basemap import Basemap
+from matplotlib.colors import LogNorm
 import pysolar
 import datetime
 
@@ -393,10 +396,12 @@ class cloud(object):
         self.ds = {}
         self.units = {}
         self.names = {}
-        self.colors = {'LWP' : 'viridis', 'Nd' : 'viridis', 'Pbot' : 'cubehelix_r', 'Phase' : 'Blues', 'Ptop' : 'cubehelix_r',\
-        'Re' : 'viridis', 'Tau' : 'viridis', 'Teff' : 'plasma', 'Zbot' : 'cubehelix', 'Ztop' : 'cubehelix'}
-        self.v = {'LWP' : (0, 300), 'Nd' : (0, 1000), 'Pbot' : (500, 1000), 'Phase' : (1, 9), 'Ptop' : (500, 1000),\
-        'Re' : (4,24), 'Tau' : (0,32), 'Teff' : (230, 300), 'Zbot' : (0,3), 'Ztop' : (0,3)} #Tuple of vmin, vmax
+        self.colors = {'LWP' : 'viridis', 'Nd' : 'cubehelix', 'Pbot' : 'cubehelix_r', 'Phase' : 'Blues', 'Ptop' : 'cubehelix_r',\
+        'Re' : 'viridis', 'Tau' : 'viridis', 'Teff' : 'plasma', 'Zbot' : 'cubehelix', 'Ztop' : 'cubehelix',\
+        'Ztf' : 'Spectral_r', 'Zbf' : 'Spectral_r', 'DZ' : 'cubehelix'}
+        self.v = {'LWP' : (0, 300), 'Nd' : (1, 1000), 'Pbot' : (500, 1000), 'Phase' : (1, 9), 'Ptop' : (500, 1000),\
+        'Re' : (4,24), 'Tau' : (0,32), 'Teff' : (230, 300), 'Zbot' : (0,3), 'Ztop' : (0,3),\
+        'Ztf' : (0,10000), 'Zbf' : (0,10000), 'DZ' : (0,6000)} #Tuple of vmin, vmax
         c = nc.Dataset(fn, 'r')
         self.lat = c['Latitude'][:]
         self.lon = c['Longitude'][:]
@@ -415,6 +420,20 @@ class cloud(object):
             self.ds['%s' % ds_name] = data
         
         c.close()
+
+        ###Ztop and Zbot in feet
+        #Data
+        self.ds['Ztf'] = self.ds['Ztop']*3280.84
+        self.ds['Zbf'] = self.ds['Zbot']*3280.84
+        self.ds['DZ'] = self.ds['Ztf']-self.ds['Zbf'] #thickness
+        #Names
+        self.names['Ztf'] = 'Cloud top height'
+        self.names['Zbf'] = 'Cloud base height'
+        self.names['DZ'] = 'Cloud thickness'
+        #Units
+        self.units['Ztf'] = 'feet'
+        self.units['Zbf'] = 'feet'
+        self.units['DZ'] = 'feet'
         
         #Patch-up for liquid radius
         self.names['Re'] = 'Liquid Radius'
@@ -448,28 +467,35 @@ class cloud(object):
         m.drawmapboundary(linewidth=1.5)        
         m.drawcoastlines()
         m.drawcountries()
-        if key == 'Pbot' or key == 'Ptop': 
+        if key == 'Pbot' or key == 'Ptop' or key == 'Nd': 
             m.drawmapboundary(fill_color='steelblue')
             m.fillcontinents(color='floralwhite',lake_color='steelblue',zorder=0)
         else: m.fillcontinents('k',zorder=0)
-        m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
-        latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
+        if key == 'Nd':
+            m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
+            latlon=True,norm = LogNorm(vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1]))
+        elif key == 'Zbf' or key == 'Ztf':
+            levels = [0,250,500,750,1000,1250,1500,1750,2000,2500,3000,3500,4000,5000,6000,7000,8000,9000,10000]
+            m.contourf(self.lon,self.lat,self.ds['%s' % key],levels=levels,\
+            cmap=self.colors['%s' % key],latlon=True)
+        else:
+            m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
+            latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
         cbar = m.colorbar()
         cbar.ax.tick_params(labelsize=size-2) 
         cbar.set_label('[%s]' % self.units['%s' % key],fontsize=size,fontname=font)
         if key == 'Pbot' or key == 'Ptop': cbar.ax.invert_yaxis() 
         m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
         m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-        if key == 'Pbot' or key == 'Ptop':
-            m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='grey',linewidth=3,linestyle='dashed',latlon=True)
-        else: 
-            m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+        m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
+        m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
+        m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
         (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+4,fontname=font)
         plt.show()
 
 """
-Cloud products
+Aerosol products
 """
 class aero(object):
     """
@@ -593,7 +619,9 @@ class aero(object):
             print 'Error: Invalid key. Check names for available datasets.'
         m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
         m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-        m.plot([14.5247,0,-10],[-22.9390,-10,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
+        m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
+        m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
+        m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
         plt.title('%s from MSG SEVIRI on %s/%s/%s at %s UTC' % \
         (self.names['%s' % key],self.month,self.day,self.year,self.time),fontsize=size+4,fontname=font)
         plt.show()
