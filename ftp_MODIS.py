@@ -211,7 +211,7 @@ for f in new_files:
     print '...Nd...'
     plt.figure(35)
     d = cloud.Nd
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',norm = LogNorm(vmin=10, vmax=1000))
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='cubehelix',norm = LogNorm(vmin=1, vmax=1000))
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
@@ -548,7 +548,7 @@ for f in new_files:
     print '...Nd...'
     plt.figure(30)
     d = cloud.Nd
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',norm = LogNorm(vmin=10, vmax=1000))
+    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='cubehelix',norm = LogNorm(vmin=1, vmax=1000))
     m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
     m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
     m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
