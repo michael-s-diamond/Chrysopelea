@@ -153,11 +153,11 @@ class CR(object):
         #
         ###Calculate solar zenith angle
         #
+        date = datetime.datetime(self.year, cal_day(self.jday, self.year)[0], \
+                cal_day(self.jday, self.year)[1],self.hour,self.minute,00)
         sza = np.zeros([np.shape(self.lat)[0],np.shape(self.lon)[0]])
         for i in range(len(self.lat)):
-            for j in range(len(self.lon)):
-                date = datetime.datetime(self.year, cal_day(self.jday, self.year)[0], \
-                cal_day(self.jday, self.year)[1],self.hour,self.minute,00)
+            for j in range(len(self.lon)):   
                 sza[i][j] = 90 - pysolar.solar.get_altitude_fast(self.lat[i],self.lon[j],date)
         self.sza = sza
         self.lon,self.lat = np.meshgrid(self.lon,self.lat)
@@ -482,7 +482,7 @@ class cloud(object):
         elif key == 'Zbf' or key == 'Ztf':
             levels = [0,250,500,750,1000,1250,1500,1750,2000,2500,3000,3500,4000,5000,6000,7000,8000,9000,10000]
             m.contourf(self.lon,self.lat,self.ds['%s' % key],levels=levels,\
-            cmap=self.colors['%s' % key],latlon=True)
+            cmap=self.colors['%s' % key],latlon=True,extend='max')
         else:
             m.pcolormesh(self.lon,self.lat,self.ds['%s' % key],cmap=self.colors['%s' % key],\
             latlon=True,vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1])
