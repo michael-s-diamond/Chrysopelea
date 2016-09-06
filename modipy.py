@@ -2507,8 +2507,12 @@ class nrtMOD06(object):
         m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
         m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
         d = dD
-        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
-        cmap='RdYlBu_r',latlon=True,vmin=vmin,vmax=vmax)
+        if data == 'Nd':
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='RdYlBu',latlon=True,vmin=vmin,vmax=vmax)
+        else:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='RdYlBu_r',latlon=True,vmin=vmin,vmax=vmax)
         cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
         cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
         cbar.ax.tick_params(labelsize=size-4)
@@ -2528,8 +2532,12 @@ class nrtMOD06(object):
         m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
         m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
         d = dE
-        m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
-        cmap='RdYlBu_r',latlon=True,vmin=vmin,vmax=vmax)
+        if data == 'Nd':
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='RdYlBu',latlon=True,vmin=vmin,vmax=vmax)
+        else:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap='RdYlBu_r',latlon=True,vmin=vmin,vmax=vmax)
         cbar = m.colorbar(ticks=[vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
         cbar.ax.set_xticklabels([vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax])
         cbar.ax.tick_params(labelsize=size-4)
