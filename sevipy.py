@@ -441,7 +441,7 @@ class cloud(object):
         #Patch-up for liquid radius
         self.names['Re'] = 'Liquid Radius'
         self.units['Re'] = '%sm' % u"\u03BC"
-          
+        
     def plot(self,key='Re'):
         """
         Create a plot of a variable over the ORACLES study area. 
@@ -472,7 +472,7 @@ class cloud(object):
         m.drawmapboundary(linewidth=1.5)        
         m.drawcoastlines()
         m.drawcountries()
-        if key == 'Pbot' or key == 'Ptop' or key == 'Nd': 
+        if key == 'Pbot' or key == 'Ptop' or key == 'Nd' or key == 'DZ': 
             m.drawmapboundary(fill_color='steelblue')
             m.fillcontinents(color='floralwhite',lake_color='steelblue',zorder=0)
         else: m.fillcontinents('k',zorder=0)
@@ -481,6 +481,10 @@ class cloud(object):
             latlon=True,norm = LogNorm(vmin=self.v['%s' % key][0],vmax=self.v['%s' % key][1]))
         elif key == 'Zbf' or key == 'Ztf':
             levels = [0,250,500,750,1000,1250,1500,1750,2000,2500,3000,3500,4000,5000,6000,7000,8000,9000,10000]
+            m.contourf(self.lon,self.lat,self.ds['%s' % key],levels=levels,\
+            cmap=self.colors['%s' % key],latlon=True,extend='max')
+        elif key == 'DZ':
+            levels = [0,500,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000]
             m.contourf(self.lon,self.lat,self.ds['%s' % key],levels=levels,\
             cmap=self.colors['%s' % key],latlon=True,extend='max')
         else:
