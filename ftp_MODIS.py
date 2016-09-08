@@ -473,3 +473,5 @@ for f in new_files:
     fig.set_size_inches(13.33,7.5)
     plt.savefig('%s_%s_%s_%s_aod' % (year,month,day,aero.time),dpi=125)
     print 'Done!\n'
+
+plt.close("all")

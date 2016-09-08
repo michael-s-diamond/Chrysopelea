@@ -134,6 +134,8 @@ for f in new_files:
         else: pass
     else: pass
 
+plt.close("all")
+
 rsync = False
 if len(new_files) > 0: rsync = True
 if rsync:
