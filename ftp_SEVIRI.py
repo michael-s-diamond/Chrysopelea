@@ -5,7 +5,9 @@ Download script for SEVIRI NRT data
 
 Modification history
 --------------------
-Written: Michael Diamond, 8/15/2016, Seattle, WA
+Written: Michael Diamond, 08/15/2016, Seattle, WA
+Modified: Michael Diamond, 09/08/2016, Swakopmund, Namibia
+    -Cloud heights and thicknesses in feet
 """
 
 import os
@@ -20,8 +22,10 @@ import matplotlib.pylab as plt
 #Get today's date and current time
 now = datetime.datetime.utcnow()
 year = now.year
-day = now.day
-month = now.month
+if now.month < 10: month = '0'+str(now.month)
+else: month = str(now.month)
+if now.day < 10: day = '0'+str(now.day)
+else: day = str(now.day)
 hour = now.hour
 minute = now.minute
 jday = mod.julian_day(month, day, year)
@@ -58,7 +62,7 @@ for f in current_files:
             if ref_im not in current_images: 
                 new_files.append(f)
         elif f[19] == 'c':
-            ref_im = '%s_%s_%s_%s_Re.png' % (year,month,day,time)
+            ref_im = '%s_%s_%s_%s_DZ.png' % (year,month,day,time)
             if ref_im not in current_images: new_files.append(f)
         elif f[19] == 'a':
             ref_im = '%s_%s_%s_%s_AOD.png' % (year,month,day,time)
@@ -82,7 +86,7 @@ for f in new_files:
                 cr.merc()
                 fig = plt.gcf()
                 fig.set_size_inches(13.33,7.5)
-                plt.savefig('%s_%s_%s_%s_CRS' % (cr.year,cr.month,cr.day,cr.time),dpi=150)
+                plt.savefig('%s_%s_%s_%s_CRS' % (year,month,day,cr.time),dpi=150)
                 print 'Done!\n'
             else:
                 os.chdir(file_directory)
@@ -98,13 +102,13 @@ for f in new_files:
                 os.chdir(directory)
                 #Effective radius for each file pair
                 print 'Making plots for %s...' % fc
-                for var in ['Re','Nd','Tau','Pbot','Ptop','Ztf','Zbf']:
+                for var in ['Re','Nd','Tau','Pbot','Ptop','Ztf','Zbf','DZ']:
                     print '...%s...' % var
                     plt.figure(1)
                     cloud.plot(var)
                     fig = plt.gcf()
                     fig.set_size_inches(13.33,7.5)
-                    plt.savefig('%s_%s_%s_%s_%s' % (cloud.year,cloud.month,cloud.day,cloud.time,var),dpi=150)
+                    plt.savefig('%s_%s_%s_%s_%s' % (year,month,day,cloud.time,var),dpi=150)
                 print 'Done!\n'
             except: os.system('rm %s' % f)
         elif f[19] == 'a':
@@ -124,7 +128,7 @@ for f in new_files:
                     aero.plot(var)
                     fig = plt.gcf()
                     fig.set_size_inches(13.33,7.5)
-                    plt.savefig('%s_%s_%s_%s_%s' % (aero.year,aero.month,aero.day,aero.time,var),dpi=150)
+                    plt.savefig('%s_%s_%s_%s_%s' % (year,month,day,aero.time,var),dpi=150)
                 print 'Done!\n'
             except: os.system('rm %s' % f)
         else: pass
