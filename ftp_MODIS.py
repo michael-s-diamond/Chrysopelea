@@ -129,7 +129,7 @@ for f in new_files:
     try: cloud = mod.nrtMOD06(f)
     except:
         os.system('rm '+f)
-        return
+        break
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
     #Move to image directory
     os.chdir(directory)
@@ -245,7 +245,7 @@ for f in new_files:
     try: aero = mod.nrtACAERO(f)
     except:
         os.system('rm '+f)
-        return
+        break
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
     #Move to image directory
     os.chdir(directory)
@@ -343,7 +343,7 @@ for f in new_files:
     try: cloud = mod.nrtMOD06(f)
     except:
         os.system('rm '+f)
-        return
+        break
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
     #Move to image directory
     os.chdir(directory)
@@ -459,7 +459,7 @@ for f in new_files:
     try: aero = mod.nrtACAERO(f)
     except:
         os.system('rm '+f)
-        return
+        break
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
     #Move to image directory
     os.chdir(directory)
