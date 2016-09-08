@@ -5,12 +5,15 @@ FTP script for MODIS NRT data
 
 Modification history
 --------------------
-Written: Michael Diamond, 8/11/2016, Seattle, WA
-Modified: Michael Diamond, 8/16/2016, Seattle, WA
+Written: Michael Diamond, 08/11/2016, Seattle, WA
+Modified: Michael Diamond, 08/16/2016, Seattle, WA
     -Made script resilient to ftp failures
-Modified: Michael Diamond, 8/29/2016, Swakopmund, Namibia
+Modified: Michael Diamond, 08/29/2016, Swakopmund, Namibia
     -Changed collection to 6, updated available plots
     -Got rid of rsync; will do from crontab
+Modified: Michael Diamond, 09/08/2016, Swakopmund, Namibia
+    -Got rid of daily maps; now in separate script
+    -Automatically remove corrupted files
 """
 
 import ftplib
@@ -24,17 +27,17 @@ import datetime
 import numpy as np
 import matplotlib.pylab as plt
 from mpl_toolkits.basemap import Basemap
-from scipy.ndimage.interpolation import zoom
-from matplotlib.colors import LogNorm
 
 #Get today's date and current time
 now = datetime.datetime.utcnow()
 year = now.year
-day = now.day
-month = now.month
+if now.month < 10: month = '0'+str(now.month)
+else: month = str(now.month)
+if now.day < 10: day = '0'+str(now.day)
+else: day = str(now.day)
 hour = now.hour
 minute = now.minute
-jday = mod.julian_day(month, day, year)
+jday = mod.julian_day(now.month, now.day, year)
 
 """
 Get LANCE NRT data
@@ -115,7 +118,7 @@ os.chdir(fdir)
 for f in current_files:
     if f[-1] == 'f' and f[6] == 'L':
         time = f[18:22]
-        ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
+        ref_im = '%s_%s_%s_%s_Nd.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
     else: pass
 
@@ -123,11 +126,11 @@ for f in current_files:
 for f in new_files:
     #Read in file
     os.chdir(fdir)
-    cloud = mod.nrtMOD06(f)
-    lon = zoom(cloud.lon,5.)
-    lat = zoom(cloud.lat,5.)
+    try: cloud = mod.nrtMOD06(f)
+    except:
+        os.system('rm '+f)
+        return
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
-    lon, lat = m(lon, lat)
     #Move to image directory
     os.chdir(directory)
     #Triplots for each file
@@ -138,138 +141,27 @@ for f in new_files:
     cloud.five_plot(data='ref')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=125)
+    plt.savefig('%s_%s_%s_%s_ref' % (year,month,day,cloud.time),dpi=125)
     print '...geo...'
     plt.clf()
     cloud.triplot(data='geo',full_res=False,num=3)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_geo' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=125)
+    plt.savefig('%s_%s_%s_%s_geo' % (year,month,day,cloud.time),dpi=125)
     print '...cot...'
     plt.clf()
     cloud.five_plot(data='cot')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=125)
+    plt.savefig('%s_%s_%s_%s_cot' % (year,month,day,cloud.time),dpi=125)
     print '...Nd...'
     plt.clf()
     cloud.five_plot(data='Nd')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_Nd' % (year,month,day,cloud.time),dpi=150)
     print 'Done!\n'
-    #Now add tile to daily maps
-    print 'Adding data to daily maps...'
-    print '...delta ref...'
-    plt.figure(7)
-    d = cloud.delta_ref16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-6,vmax=6)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_delta_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...del ref...'
-    plt.figure(14)
-    d = cloud.del_ref16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-500,vmax=500)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_del_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...effective radius...'
-    plt.figure(21)
-    d = cloud.ref
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=4,vmax=24)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...cloud optical thickness...'
-    plt.figure(28)
-    d = cloud.COT
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=0,vmax=32)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...Nd...'
-    plt.figure(35)
-    d = cloud.Nd
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='cubehelix',norm = LogNorm(vmin=1, vmax=1000))
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...delta COT...'
-    plt.figure(42)
-    d = cloud.delta_COT16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1,vmax=1)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_delta_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...del COT...'
-    plt.figure(49)
-    d = cloud.del_COT16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-100,vmax=100)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_del_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...delta Nd...'
-    plt.figure(56)
-    d = cloud.delta_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu',vmin=-300,vmax=300)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_delta_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...del Nd...'
-    plt.figure(63)
-    d = cloud.del_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu',vmin=-1000,vmax=1000)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_del_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print 'Done!\n'
-    
+
 #
 ###Terra ACAERO
 #
@@ -350,12 +242,14 @@ for f in current_files:
 for f in new_files:
     #Read in file
     os.chdir(fdir)
-    aero = mod.nrtACAERO(f)
+    try: aero = mod.nrtACAERO(f)
+    except:
+        os.system('rm '+f)
+        return
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
-    lon, lat = m(aero.lon, aero.lat)
     #Move to image directory
     os.chdir(directory)
-    #Triplots for each file
+    #Make AOD plot
     print 'Making plots for %s...' % f
     plt.figure(3)
     print '...aod...'
@@ -363,21 +257,7 @@ for f in new_files:
     aero.AOD_plot()
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_aod' % (aero.year,mod.month_num[aero.month],aero.day,aero.time),dpi=125)
-    #Now add tile to daily maps
-    print 'Adding data to daily maps...'
-    print '...AOD...'
-    plt.figure(100)
-    d = aero.ds['Above_Cloud_AOD']
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='inferno_r',vmin=0,vmax=3)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_ACAOD' % (aero.year,mod.month_num[aero.month],aero.day),dpi=150)
+    plt.savefig('%s_%s_%s_%s_aod' % (year,month,day,aero.time),dpi=125)
     print 'Done!\n'
 
 #
@@ -452,7 +332,7 @@ os.chdir(fdir)
 for f in current_files:
     if f[-1] == 'f' and f[6] == 'L':
         time = f[18:22]
-        ref_im = '%s_%s_%s_%s_ref.png' % (year,month,day,time)
+        ref_im = '%s_%s_%s_%s_Nd.png' % (year,month,day,time)
         if ref_im not in current_images: new_files.append(f)
     else: pass
 
@@ -460,11 +340,11 @@ for f in current_files:
 for f in new_files:
     #Read in file
     os.chdir(fdir)
-    cloud = mod.nrtMOD06(f)
-    lon = zoom(cloud.lon,5.)
-    lat = zoom(cloud.lat,5.)
+    try: cloud = mod.nrtMOD06(f)
+    except:
+        os.system('rm '+f)
+        return
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
-    lon, lat = m(lon, lat)
     #Move to image directory
     os.chdir(directory)
     #Triplots for each file
@@ -475,136 +355,25 @@ for f in new_files:
     cloud.five_plot(data='ref')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_ref' % (year,month,day,cloud.time),dpi=150)
     print '...geo...'
     plt.clf()
     cloud.triplot(data='geo',full_res=False,num=3)
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_geo' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_geo' % (year,month,day,cloud.time),dpi=150)
     print '...cot...'
     plt.clf()
     cloud.five_plot(data='cot')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
+    plt.savefig('%s_%s_%s_%s_cot' % (year,month,day,cloud.time),dpi=150)
     print '...Nd...'
     plt.clf()
     cloud.five_plot(data='Nd')
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day,cloud.time),dpi=150)
-    print 'Done!\n'
-    #Now add tile to daily maps
-    print 'Adding data to daily maps...'
-    print '...delta ref...'
-    plt.figure(6)
-    d = cloud.delta_ref16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-6,vmax=6)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_delta_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...del ref...'
-    plt.figure(12)
-    d = cloud.del_ref16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-500,vmax=500)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_del_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...effective radius...'
-    plt.figure(18)
-    d = cloud.ref
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=4,vmax=24)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_ref' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...cloud optical thickness...'
-    plt.figure(24)
-    d = cloud.COT
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='viridis',vmin=0,vmax=32)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...Nd...'
-    plt.figure(30)
-    d = cloud.Nd
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='cubehelix',norm = LogNorm(vmin=1, vmax=1000))
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...delta COT...'
-    plt.figure(36)
-    d = cloud.delta_COT16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-1,vmax=1)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_delta_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...del COT...'
-    plt.figure(48)
-    d = cloud.del_COT16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu_r',vmin=-100,vmax=100)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_del_cot' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...delta Nd...'
-    plt.figure(54)
-    d = cloud.delta_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu',vmin=-300,vmax=300)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_delta_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
-    print '...del Nd...'
-    plt.figure(60)
-    d = cloud.del_Nd16
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='RdYlBu',vmin=-1000,vmax=1000)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_del_Nd' % (cloud.year,mod.month_num[cloud.month],cloud.day),dpi=150)
+    plt.savefig('%s_%s_%s_%s_Nd' % (year,month,day,cloud.time),dpi=150)
     print 'Done!\n'
 
 #
@@ -687,9 +456,11 @@ for f in current_files:
 for f in new_files:
     #Read in file
     os.chdir(fdir)
-    aero = mod.nrtACAERO(f)
+    try: aero = mod.nrtACAERO(f)
+    except:
+        os.system('rm '+f)
+        return
     m = Basemap(llcrnrlon=-15.5,llcrnrlat=-25.5,urcrnrlon=15.5,urcrnrlat=-4.5,projection='merc',resolution='l')
-    lon, lat = m(aero.lon, aero.lat)
     #Move to image directory
     os.chdir(directory)
     #Triplots for each file
@@ -700,23 +471,5 @@ for f in new_files:
     aero.AOD_plot()
     fig = plt.gcf()
     fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_aod' % (aero.year,mod.month_num[aero.month],aero.day,aero.time),dpi=125)
-    #Now add tile to daily maps
-    print 'Adding data to daily maps...'
-    print '...AOD...'
-    plt.figure(101)
-    d = aero.ds['Above_Cloud_AOD']
-    plt.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],cmap='inferno_r',vmin=0,vmax=3)
-    m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
-    m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
-    m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='w',linewidth=5,linestyle='dashed',latlon=True)
-    m.plot([14.5247,13,0],[-22.9390,-23,-10],c='k',linewidth=3,linestyle='dashed',latlon=True)
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_map_ACAOD' % (aero.year,mod.month_num[aero.month],aero.day),dpi=150)
+    plt.savefig('%s_%s_%s_%s_aod' % (year,month,day,aero.time),dpi=125)
     print 'Done!\n'
-
-
-
-
