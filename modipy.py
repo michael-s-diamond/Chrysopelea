@@ -2902,7 +2902,7 @@ class nrt_comp(object):
         self.ds['%s' % key] = c.ds['%s' % key]
         self.name['%s' % key] = '%sCOT' % Delta
         self.cmap['%s' % key] = 'RdYlBu_r'
-        self.v['%s' % key] = (-1,0,1)
+        self.v['%s' % key] = (-1.,0,1.)
         self.units['%s' % key] = 'unitless'
         self.keys.append(key)
         
@@ -2949,7 +2949,7 @@ class nrt_comp(object):
         micron = u"\u03BC"+'m'
         plt.clf()
         font = 'Arial'
-        size = 20
+        size = 16
         max_lon = self.lon.max()
         max_lat = self.lat.max()
         min_lon = self.lon.min()
