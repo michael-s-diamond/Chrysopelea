@@ -28,7 +28,7 @@ if now.day < 10: day = '0'+str(now.day)
 else: day = str(now.day)
 hour = now.hour
 minute = now.minute
-jday = mod.julian_day(month, day, year)
+jday = mod.julian_day(now.month, now.day, year)
 
 """
 Get LARC SEVIRI data
