@@ -135,10 +135,3 @@ for f in new_files:
     else: pass
 
 plt.close("all")
-
-rsync = False
-if len(new_files) > 0: rsync = True
-if rsync:
-    try: os.system('rsync -a /Users/michaeldiamond/Documents/oracles diamond2@olympus.atmos.washington.edu:~/public_html')
-    except: print 'Rsync failed at %s' % now
-print 'Done!\n'

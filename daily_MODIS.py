@@ -734,10 +734,3 @@ for f in cloudfiles:
         print 'Done!\n'
 
 plt.close("all")
-
-print '\nTrying rsync...'
-try: 
-    os.system('rsync -a /Users/michaeldiamond/Documents/oracles diamond2@olympus.atmos.washington.edu:~/public_html')
-    'Success!'
-except: print 'Failed at %s' % now
-print 'Done!\n'

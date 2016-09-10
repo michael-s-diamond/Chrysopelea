@@ -148,4 +148,3 @@ schedule.every(5).minutes.do(run_ftp_SEVIRI)
 while True:
     schedule.run_pending()
     time.sleep(10)
-
