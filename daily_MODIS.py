@@ -32,6 +32,7 @@ minute = now.minute
 jday = mod.julian_day(now.month, now.day, year)
 
 print 'Running MODIS daily mapmaker at %s' % now
+plt.close("all")
 
 """
 Terra

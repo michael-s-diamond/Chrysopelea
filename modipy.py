@@ -3,10 +3,12 @@ Define simple functions to analyze MODIS data using Python.
 
 Modification history
 --------------------
-Written (v.0.0): Michael Diamond, 8/3-4/2016, Seattle, WA
-Modified (v.0.1): Michael Diamond, 8/8-9/2016, Seattle, WA
+Written (v.0.0): Michael Diamond, 08/04/2016, Seattle, WA
+Modified (v.0.1): Michael Diamond, 08/09/2016, Seattle, WA
     -Fixed bugs in MOD021KM object
     -Created NRT MOD06 object for ORACLES campaign
+Modified (v.0.2): Michael Diamond, 09/10/2016, Swakopmund, Namibia
+    -Added full resolution option to MOD021km quick_plot
 """
 
 #Import libraries
@@ -408,7 +410,7 @@ def colorbar(band):
     elif band == 4 or 11 <= band <= 12:
         return 'YlGn'
     else:
-        return 'cubehelix_r'
+        return 'cubehelix'
 
 """
 Class for MOD021KM/MYD021KM calibrated radiance/reflectance files from LAADS Web (https://ladsweb.nascom.nasa.gov/)
@@ -433,6 +435,8 @@ class MOD021KM(object):
         Also, Tb() returns equivalent array.
     
     quick_plot: Fast plot of data. Intended as a check/first look at the data.
+    
+    plot: Plot of data at 1 km x 1 km resolution.
     
     Returns
     -------
@@ -841,7 +845,7 @@ class MOD021KM(object):
             d = self.reflectance(band,hi)[::5,::5]
             vmin = 0
             vmax = 1
-            cmap = colorbar(band)+'_r'
+            cmap = colorbar(band)
         elif data == 'brightness temperature' or data == 'Tb':
             d = self.Tb(band,hi)[::5,::5]
             vmin = d.min()
@@ -853,6 +857,98 @@ class MOD021KM(object):
         cbar.ax.tick_params(labelsize=size-4) 
         label = {'radiance' : 'Radiance [W/m^2/micron/sr]', 'reflectance' : 'Reflectance [unitless]',\
         'brightness temperature' : 'Brightness temperature [K]', 'Tb' : 'Brightness temperature [K]'}
+        cbar.set_label(label['%s' % data],fontname=font,fontsize=size-2)
+        plt.title('Band %s %s for %s %s, %s from %s' % \
+        (band,data,self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
+        
+    #Plot data at full resolution
+    def plot(self,band,hi=False,data='radiance',projection='merc',cm=None):
+        """
+        Plot data for a single MOD021KM or MYD021KM file. Gives more control than quick_plot().
+        
+        Parameters
+        ----------
+        band : int
+        MODIS band, from 1 to 36.
+        
+        hi : boolean
+        Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
+        
+        data : string
+        Use 'rad' for radiances or 'ref' for reflectances. Default is radiance.
+        
+        projection : string
+        Use 'merc' for mercator, 'global' for global plot (kav7), 'nsper' for Terra/Aqua's eye view.
+        
+        cm : string or colormap object
+        Use a different colormap than the default from colorbar(). Optional.
+        
+        Returns
+        -------
+        Plot of data at "full" 1 km x 1 km resolution.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 09/10/2016, Swakopmund, Namibia
+        """
+        if not type(band) == int or band > 36:
+            print 'Error: Band must be an integer from 1-36'
+            return
+        plt.figure()
+        plt.clf()
+        font = 'Arial'
+        size = 20
+        lat = zoom(self.lat,5.)
+        lon = zoom(self.lon,5.)
+        max_lon = lon.max()
+        max_lat = lat.max()
+        min_lon = lon.min()
+        min_lat = lat.min()
+        if projection == 'merc':
+            m = Basemap(llcrnrlon=min_lon-1,llcrnrlat=min_lat-1,urcrnrlon=max_lon+1,\
+            urcrnrlat=max_lat+1,projection='merc',resolution='l')
+            m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0])
+            m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1])
+        elif projection == 'global':
+            m = Basemap(lon_0=0,projection='kav7',resolution='c')
+            m.drawparallels(np.arange(-180,180,15),labels=[1,0,0,0])
+            m.drawmeridians(np.arange(0,360,45),labels=[1,1,0,1])
+        elif projection == 'satellite':
+            m = Basemap(projection='nsper',lon_0=self.lon.mean(),lat_0=self.lat.mean(),\
+            resolution='l',satellite_height=705000)
+            m.bluemarble(alpha=.75)
+        else:
+            print "Error: Projection must be 'merc', 'global', or 'satellite'."
+            return
+        m.drawcoastlines()
+        m.drawcountries()
+        if data == 'radiance': 
+            d = self.radiance(band,hi)
+            vmin = 0
+            vmax = d.max()
+        elif data == 'reflectance': 
+            d = self.reflectance(band,hi)
+            vmin = 0
+            vmax = 1
+        elif data == 'brightness temperature' or data == 'Tb':
+            d = self.Tb(band,hi)
+            vmin = d.min()
+            vmax = d.max()
+        if cm == None:
+            m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+            cmap=colorbar(band),latlon=True,vmin=vmin,vmax=vmax)
+        else:
+            try:
+                m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+                cmap=cm,latlon=True,vmin=vmin,vmax=vmax)
+            except:
+                print "Woops, that doesn't look like a valid colormap. Using default."
+                m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
+                cmap=colorbar(band),latlon=True,vmin=vmin,vmax=vmax)
+        cbar = m.colorbar()
+        cbar.ax.tick_params(labelsize=size-4) 
+        label = {'radiance' : '[W/m^2/micron/sr]', 'reflectance' : '[unitless]',\
+        'brightness temperature' : '[K]', 'Tb' : '[K]'}
         cbar.set_label(label['%s' % data],fontname=font,fontsize=size-2)
         plt.title('Band %s %s for %s %s, %s from %s' % \
         (band,data,self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
