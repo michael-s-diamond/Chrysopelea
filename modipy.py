@@ -482,9 +482,6 @@ class MOD021KM(object):
         
         Parameters
         ----------
-        filename : string
-        Name of the .hdf level 1b file.
-        
         b : int
         Band number, between 1-36.
         
@@ -498,8 +495,8 @@ class MOD021KM(object):
         
         Modification history
         --------------------
-        Written: Michael Diamond, 8/4/2016, Seattle, WA
-        Modified: Michael Diamond, 8/8/2016, Seattle, WA
+        Written: Michael Diamond, 08/04/2016, Seattle, WA
+        Modified: Michael Diamond, 08/08/2016, Seattle, WA
             -Mask invalid data before scaling
         """
         if not type(b) == int:
@@ -612,9 +609,6 @@ class MOD021KM(object):
         
         Parameters
         ----------
-        filename : string
-        Name of the .hdf level 1b file.
-        
         b : int
         Band number, between 1-36.
         
@@ -628,8 +622,8 @@ class MOD021KM(object):
         
         Modification history
         --------------------
-        Written: Michael Diamond, 8/4/2016, Seattle, WA
-        Modified: Michael Diamond, 8/8/2016, Seattle, WA
+        Written: Michael Diamond, 08/04/2016, Seattle, WA
+        Modified: Michael Diamond, 08/08/2016, Seattle, WA
             -Mask invalid data before scaling
         """
         if not type(b) == int:
@@ -738,8 +732,8 @@ class MOD021KM(object):
         
         Modification history
         --------------------
-        Written: Michael Diamond, 8/4/2016, Seattle, WA
-        Modified: Michael Diamond, 8/8/2016, Seattle, WA
+        Written: Michael Diamond, 08/04/2016, Seattle, WA
+        Modified: Michael Diamond, 08/08/2016, Seattle, WA
             -Fixed syntax error in constants
         """
         h = 6.62607004*10**-34 #m2 kg / s
@@ -774,7 +768,7 @@ class MOD021KM(object):
         
         Modification history
         --------------------
-        Written: Michael Diamond, 8/4/2016, Seattle, WA
+        Written: Michael Diamond, 08/04/2016, Seattle, WA
         """
         return self.Tb(band,hi)
 
@@ -855,14 +849,16 @@ class MOD021KM(object):
         shading='gouraud',cmap=cmap,latlon=True,vmin=vmin,vmax=vmax)
         cbar = m.colorbar()
         cbar.ax.tick_params(labelsize=size-4) 
-        label = {'radiance' : 'Radiance [W/m^2/micron/sr]', 'reflectance' : 'Reflectance [unitless]',\
-        'brightness temperature' : 'Brightness temperature [K]', 'Tb' : 'Brightness temperature [K]'}
+        label = {'radiance' : '[W/m^2/micron/sr]', 'reflectance' : '[unitless]',\
+        'brightness temperature' : '[K]', 'Tb' : '[K]'}
         cbar.set_label(label['%s' % data],fontname=font,fontsize=size-2)
         plt.title('Band %s %s for %s %s, %s from %s' % \
         (band,data,self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
         
     #Plot data at full resolution
-    def plot(self,band,hi=False,data='radiance',projection='merc',cm=None):
+    def plot(self,band,hi=False,data='radiance',projection='merc',\
+        cm=None,coastlines=True,countries=True,land_color=None,lake_color=None,\
+        ocean_color=None):
         """
         Plot data for a single MOD021KM or MYD021KM file. Gives more control than quick_plot().
         
@@ -894,6 +890,11 @@ class MOD021KM(object):
         if not type(band) == int or band > 36:
             print 'Error: Band must be an integer from 1-36'
             return
+        ref_valid = [26]
+        for i in range(0,20): ref_valid.append(i)
+        if data == 'reflectance' and band not in ref_valid:
+            print 'Error: Band must be an integer between 1 and 19 or 26 for reflectance'
+            return
         plt.figure()
         plt.clf()
         font = 'Arial'
@@ -918,10 +919,26 @@ class MOD021KM(object):
             resolution='l',satellite_height=705000)
             m.bluemarble(alpha=.75)
         else:
-            print "Error: Projection must be 'merc', 'global', or 'satellite'."
+            print "Error: Projection must be 'merc', 'global', or 'satellite'"
             return
-        m.drawcoastlines()
-        m.drawcountries()
+        if coastlines: m.drawcoastlines()
+        if countries: m.drawcountries()
+        if not ocean_color == None: 
+            try: 
+                m.drawmapboundary(fill_color=ocean_color)
+                m.fillcontinents('floralwhite',lake_color='steelblue',zorder=0)
+            except:
+                print 'Warning: Ocean fill color not recognized. Default is steelblue.'
+                m.drawmapboundary(fill_color='steelblue')
+        if not land_color == None and lake_color == None: 
+            try: m.fillcontinents(land_color,zorder=0)
+            except:
+                print 'Warning: Land fill color not recognized.'
+        if not lake_color == None: 
+            if land_color == None: land_color = 'floralwhite'
+            try: m.fillcontinents(land_color,lake_color=lake_color,zorder=0)
+            except:
+                print 'Warning: Lake and/or land fill color not recognized.'
         if data == 'radiance': 
             d = self.radiance(band,hi)
             vmin = 0
