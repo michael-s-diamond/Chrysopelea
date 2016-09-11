@@ -118,7 +118,7 @@ def run_daily_MODIS():
     os.chdir('/Users/michaeldiamond')
     print 'Done!\n'
     
-schedule.every().day.at("15:00").do(run_daily_MODIS)
+schedule.every().day.at("13:00").do(run_daily_MODIS)
 
 #Run ftp_MODIS every 5 min
 def run_ftp_MODIS():
