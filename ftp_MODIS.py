@@ -138,10 +138,14 @@ for f in new_files:
     plt.figure(3)
     print '...ref...'
     plt.clf()
-    cloud.five_plot(data='ref')
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_ref' % (year,month,day,cloud.time),dpi=125)
+    try:
+        cloud.five_plot(data='ref')
+        fig = plt.gcf()
+        fig.set_size_inches(13.33,7.5)
+        plt.savefig('%s_%s_%s_%s_ref' % (year,month,day,cloud.time),dpi=125)
+    except:
+        os.system('rm '+f)
+        break
     print '...geo...'
     plt.clf()
     cloud.triplot(data='geo',full_res=False,num=3)
@@ -352,10 +356,14 @@ for f in new_files:
     plt.figure(3)
     print '...ref...'
     plt.clf()
-    cloud.five_plot(data='ref')
-    fig = plt.gcf()
-    fig.set_size_inches(13.33,7.5)
-    plt.savefig('%s_%s_%s_%s_ref' % (year,month,day,cloud.time),dpi=150)
+    try:
+        cloud.five_plot(data='ref')
+        fig = plt.gcf()
+        fig.set_size_inches(13.33,7.5)
+        plt.savefig('%s_%s_%s_%s_ref' % (year,month,day,cloud.time),dpi=125)
+    except:
+        os.system('rm '+f)
+        break
     print '...geo...'
     plt.clf()
     cloud.triplot(data='geo',full_res=False,num=3)

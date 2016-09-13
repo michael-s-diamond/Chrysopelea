@@ -285,30 +285,6 @@ cbar.set_label('[unitless]', fontname=font,fontsize=size-2)
 plt.title('ACAOD for %s/%s/%s from Terra' % (month,day,year),\
 fontname=font,fontsize=size)
 
-#ACAOD
-plt.figure(100)
-plt.clf()
-m
-m.drawparallels(np.arange(-180,180,10),labels=[1,0,0,0],fontsize=size-2,fontname=font)
-m.drawmeridians(np.arange(0,360,10),labels=[1,1,0,1],fontsize=size-2,fontname=font)
-m.drawcoastlines()
-m.drawcountries()
-m.fillcontinents('k',zorder=0)
-dummy = np.zeros((2,2)) #Make the dummary have all the values needed
-vmax = 3
-vmed = 1.5
-vmin = 0
-dummy[0,0] = vmax
-dummy[-1,-1] = vmin
-plt.pcolormesh(dummy,cmap='inferno_r')
-ticks = [vmin, (vmin+vmed)/2, vmed, (vmed+vmax)/2, vmax]
-cbar = plt.colorbar(ticks = ticks)
-cbar.ax.set_yticklabels(ticks)
-cbar.ax.tick_params(labelsize=size-4)
-cbar.set_label('[unitless]', fontname=font,fontsize=size-2)
-plt.title('ACAOD for %s/%s/%s from Terra' % (month,day,year),\
-fontname=font,fontsize=size)
-
 #ACAOD_ModAbsAero
 plt.figure(107)
 plt.clf()
@@ -503,6 +479,7 @@ for f in cloudfiles:
         print 'Making comparison plots...'
         for var in ['delta_ref16','delta_COT16','delta_Nd16','del_ref16','del_COT16','del_Nd16']:
             print '...%s...' % var
+            plt.figure('comp')
             comp.compare(var)
             fig = plt.gcf()
             fig.set_size_inches(13.33,7.5)

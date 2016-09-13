@@ -8,7 +8,7 @@ Modified (v.0.1): Michael Diamond, 08/09/2016, Seattle, WA
     -Fixed bugs in MOD021KM object
     -Created NRT MOD06 object for ORACLES campaign
 Modified (v.0.2): Michael Diamond, 09/10/2016, Swakopmund, Namibia
-    -Added full resolution option to MOD021km quick_plot
+    -Added full resolution option to MOD021KM quick_plot
 """
 
 #Import libraries
@@ -45,7 +45,7 @@ def cal_day(julian_day,year):
     
     Modification history
     --------------------
-    Written: Michael Diamond, 8/3/16, Seattle, WA
+    Written: Michael Diamond, 08/03/2016, Seattle, WA
     """
     if julian_day <= 59:
         if julian_day <= 31:
@@ -852,7 +852,7 @@ class MOD021KM(object):
         label = {'radiance' : '[W/m^2/micron/sr]', 'reflectance' : '[unitless]',\
         'brightness temperature' : '[K]', 'Tb' : '[K]'}
         cbar.set_label(label['%s' % data],fontname=font,fontsize=size-2)
-        plt.title('Band %s %s for %s %s, %s from %s' % \
+        plt.title('Band %s %s for %s %s, %s, from %s' % \
         (band,data,self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
         
     #Plot data at full resolution
@@ -967,7 +967,7 @@ class MOD021KM(object):
         label = {'radiance' : '[W/m^2/micron/sr]', 'reflectance' : '[unitless]',\
         'brightness temperature' : '[K]', 'Tb' : '[K]'}
         cbar.set_label(label['%s' % data],fontname=font,fontsize=size-2)
-        plt.title('Band %s %s for %s %s, %s from %s' % \
+        plt.title('Band %s %s for %s %s, %s, from %s' % \
         (band,data,self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
 
 """
