@@ -6,9 +6,11 @@ Modification history
 Written (v.0.0): Michael Diamond, 08/04/2016, Seattle, WA
 Modified (v.0.1): Michael Diamond, 08/09/2016, Seattle, WA
     -Fixed bugs in MOD021KM object
-    -Created NRT MOD06 object for ORACLES campaign
+    -Created NRT MOD06 object for ORACLES campaign (https://espo.nasa.gov/home/oracles/)
 Modified (v.0.2): Michael Diamond, 09/10/2016, Swakopmund, Namibia
-    -Added full resolution option to MOD021KM quick_plot
+    -Added full resolution plot option to MOD021KM
+Modified (v.0.3): Michael Diamond, 09/14/2016, Swakopmund, Namibia
+    -Added true/false color blend plot to MOD021KM
 """
 
 #Import libraries
@@ -28,10 +30,10 @@ General purpose functions
 #Convert Julian day to calendar day
 def cal_day(julian_day,year):
     """
-    Convert Julian day into calendar day.
+    Convert Julian day into calendar day (see: http://landweb.nascom.nasa.gov/browse/calendar.html).
     
     Parameters
-    ----------
+    -----------
     julian_day : int
     Julian day.
     
@@ -115,7 +117,7 @@ month_name = {'1': 'January','2' : 'February','3' : 'March','4' : 'April','5' : 
 #Convert calendar day to Julian day
 def julian_day(month, day, year):
     """
-    Convert calendar day to julian day.
+    Convert calendar day to Julian day (see: http://landweb.nascom.nasa.gov/browse/calendar.html).
     
     Parameters
     ----------
@@ -438,6 +440,10 @@ class MOD021KM(object):
     
     plot: Plot of data at 1 km x 1 km resolution.
     
+    blend: Plot a non-projected RGB blend of 3 solar bands.
+    
+    standard_blends: Plots three standard true and false color blends (non-projected).
+    
     Returns
     -------
     filename, month, time, satellite: string
@@ -456,6 +462,8 @@ class MOD021KM(object):
         -Fixed bug in brightness temperature
         -Changed aesthetics of plotting methods
         -Masks invalid data before applying scale and offset
+    Modified (v.1.2): Michael Diamond, 09/14/2016, Swakopmund, Namibia
+        -Added full resolution plot option and true/false color blend plots
     """
     
     def __init__(self,filename):
@@ -797,8 +805,8 @@ class MOD021KM(object):
         
         Modification history
         --------------------
-        Written: Michael Diamond, 8/4/2016, Seattle, WA
-        Modified: Michael Diamond, 8/8/2016, Seattle, WA
+        Written: Michael Diamond, 08/04/2016, Seattle, WA
+        Modified: Michael Diamond, 08/08/2016, Seattle, WA
             -Aesthetic changes to plots
         """
         if not type(band) == int or band > 36:
@@ -969,6 +977,118 @@ class MOD021KM(object):
         cbar.set_label(label['%s' % data],fontname=font,fontsize=size-2)
         plt.title('Band %s %s for %s %s, %s, from %s' % \
         (band,data,self.month,self.day,self.year,self.satellite), fontname=font,fontsize=size)
+
+    def blend(self,R,G,B):
+        """
+        Plot a non-projected blend based on 3 solar bands.
+        
+        Parameters
+        ----------
+        R, G, B : int
+        Band number for red, green, and blue component, respectivlely, of blended RGB image.
+        
+        Returns
+        -------
+        Unprojected plot of RGB blend.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 09/14/2016, Swakopmund, Namibia
+        """
+        plt.figure()
+        fontname = 'Arial'
+        fontsize = 20
+        red = self.reflectance(R)
+        green = self.reflectance(G)
+        blue = self.reflectance(B)
+        factor = 0.4 # factor to increase the brightness
+        rgb = np.zeros((2030, 1354,3))
+        rgb[:,:,0] = red/factor
+        rgb[:,:,1] = green/factor
+        rgb[:,:,2] = blue/factor
+        rgb[ rgb > 1 ] = 1.0
+        rgb[ rgb < 0 ] = 0.0
+        rgb = np.fliplr(rgb)
+        plt.imshow(rgb,origin='lower')
+        plt.xticks([])
+        plt.yticks([])
+        plt.title('Blend: RGB = %s-%s-%s' % (R,G,B),fontname=fontname,fontsize=fontsize)
+    
+    def standard_blends(self):
+        """
+        Plot one true color and two false color blends. 
+        
+        See https://earthdata.nasa.gov/faq#ed-rapid-response-faq for blend info.
+        
+        ***Note: Due to striping issues with Aqua band 6, band 5 is used instead for Aqua only.***
+        
+        Returns
+        -------
+        Three unprojected plots of standard true and false color blends.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 09/14/2016, Swakopmund, Namibia
+        """
+        plt.figure("blends")
+        plt.clf()
+        fontname = 'Arial'
+        fontsize = 16
+        #True color (1-4-3)
+        plt.subplot(1,3,1)
+        red = self.reflectance(1)
+        green = self.reflectance(4)
+        blue = self.reflectance(3)
+        factor = 0.4 # factor to increase the brightness
+        rgb = np.zeros((2030, 1354,3))
+        rgb[:,:,0] = red/factor
+        rgb[:,:,1] = green/factor
+        rgb[:,:,2] = blue/factor
+        rgb[ rgb > 1 ] = 1.0
+        rgb[ rgb < 0 ] = 0.0
+        rgb = np.fliplr(rgb)
+        plt.imshow(rgb,origin='lower')
+        plt.xticks([])
+        plt.yticks([])
+        plt.title('True color (1-4-3)',fontname=fontname,fontsize=fontsize)
+        #False color (3-5/6-7)
+        plt.subplot(1,3,2)
+        red = self.reflectance(3)
+        if self.satellite == 'Terra': green_band = 6
+        else: green_band = 5
+        green = self.reflectance(green_band)
+        blue = self.reflectance(7)
+        factor = .4 # factor to increase the brightness
+        rgb = np.zeros((2030, 1354,3))
+        rgb[:,:,0] = red/factor
+        rgb[:,:,1] = green/factor
+        rgb[:,:,2] = blue/factor
+        rgb[ rgb > 1 ] = 1.0
+        rgb[ rgb < 0 ] = 0.0
+        rgb = np.fliplr(rgb)
+        plt.imshow(rgb,origin='lower')
+        plt.xticks([])
+        plt.yticks([])
+        plt.title('False color (3-%s-7)' % green_band,fontname=fontname,fontsize=fontsize)
+        #False color (7-2-1)
+        plt.subplot(1,3,3)
+        red = self.reflectance(7)
+        green = self.reflectance(2)
+        blue = self.reflectance(1)
+        factor = 0.4 # factor to increase the brightness
+        rgb = np.zeros((2030, 1354,3))
+        rgb[:,:,0] = red/factor
+        rgb[:,:,1] = green/factor
+        rgb[:,:,2] = blue/factor
+        rgb[ rgb > 1 ] = 1.0
+        rgb[ rgb < 0 ] = 0.0
+        rgb = np.fliplr(rgb)
+        plt.imshow(rgb,origin='lower')
+        plt.xticks([])
+        plt.yticks([])
+        plt.title('False color (7-2-1)',fontname=fontname,fontsize=fontsize)
+        
+
 
 """
 Functions for MOD06_L2/MYD06_L2 files downloaded from from LAADS Web (https://ladsweb.nascom.nasa.gov/).
