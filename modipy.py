@@ -794,10 +794,10 @@ class MOD021KM(object):
         Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
         
         data : string
-        Use 'rad' for radiances or 'ref' for reflectances. Default is radiance.
+        Choose 'radiance', 'reflectance', 'Tb', or 'brightness temperature'. Default is radiance.
         
         projection : string
-        Use 'merc' for mercator, 'global' for global plot (kav7), 'nsper' for Terra/Aqua's eye view.
+        Use 'merc' for mercator, 'global' for global plot (kav7), 'satellite' for Terra/Aqua's eye view.
         
         Returns
         -------
@@ -879,13 +879,19 @@ class MOD021KM(object):
         Hi- or lo-gain bands for bands 13 and 14. Default is lo-gain.
         
         data : string
-        Use 'rad' for radiances or 'ref' for reflectances. Default is radiance.
+        Choose 'radiance', 'reflectance', 'Tb', or 'brightness temperature'. Default is radiance.
         
         projection : string
-        Use 'merc' for mercator, 'global' for global plot (kav7), 'nsper' for Terra/Aqua's eye view.
+        Use 'merc' for mercator, 'global' for global plot (kav7), 'satellite' for Terra/Aqua's eye view.
         
         cm : string or colormap object
-        Use a different colormap than the default from colorbar(). Optional.
+        Use a different colormap than the default from modipy.colorbar(). Optional.
+        
+        coastlines, countries : boolean
+        If True, plot coastlines/country boundaries. Default is True.
+        
+        land_color, lake_color, ocean_color : string
+        Set solid color for land, lake, and ocean surfaces in background. Optional.
         
         Returns
         -------
