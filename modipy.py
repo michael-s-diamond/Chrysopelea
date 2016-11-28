@@ -11,6 +11,8 @@ Modified (v.0.2): Michael Diamond, 09/10/2016, Swakopmund, Namibia
     -Added full resolution plot option to MOD021KM
 Modified (v.0.3): Michael Diamond, 09/14/2016, Swakopmund, Namibia
     -Added true/false color blend plot to MOD021KM
+Modified (v.0.4): Michael Diamond, 11/23/2016, Hawthorne, NY
+    -Added generic MOD class that should work for any MODIS file
 """
 
 #Import libraries
@@ -3383,25 +3385,259 @@ class nrt_comp(object):
         plt.show()
 
 """
+Atmospheric level 3 files
+"""
+class MOD08(object):
+    """
+    Read in clear-sky aerosol and cloud data from MODIS atmosphere L3 data file.
+    
+    Parameters
+    ----------
+    file_name : string
+    Name of file, in standard LAADS/LANCE notation.
+        
+    Returns
+    -------
+    ds : dictionary
+    Datasets contained in file, with scales, offsets, and mask if contained in file.
+        
+    names : dictionary
+    Long name of each dataset in file.
+        
+    units : dictionary
+    Units of each dataset in file.
+
+    Modification history
+    --------------------
+        Written: Michael Diamond, 07/18/2016, Seattle, WA
+        Modified: Michael Diamond, 07/29/16, JFK Airport, NY
+            -Weighting KH averages by number of valid pixels
+                -Problem: no number of valid pixel parameter for cloud properties...
+                -For now, commented out.
+            -Making scatterplot feature to try and show aerosol indirect effect
+        Modified: Michael Diamond, 11/23/2016
+            -KH expanded to calculate average over each subtropical KH93 Sc region
+    """
+    
+    def __init__(self,file_name):
+        self.year = int(file_name[10:14])
+        self.jday = int(file_name[14:17])
+        self.month = cal_day(self.jday,self.year).split()[0]
+        self.day = int(cal_day(self.jday,self.year).split()[1])
+        self.type = file_name[6]
+        if file_name[1] == 'Y':
+            self.satellite = 'Aqua'
+        elif file_name[1] == 'O':
+            self.satellite = 'Terra'
+        self.ds = {}
+        self.units = {}
+        self.names = {}
+        a = SD.SD(file_name, SDC.READ)
+        
+        #Geospatial info
+        lat_max = -4.5
+        lat_min = -25.5
+        lon_max = 15.5
+        lon_min = -15.5
+        lon = a.select('XDim')[:]
+        lat = a.select('YDim')[:]
+        lon0 = list(lon).index(lon_min)
+        lon1 = list(lon).index(lon_max)+1
+        lat0 = list(lat).index(lat_max)
+        lat1 = list(lat).index(lat_min)+1
+        lon = lon[lon0:lon1]
+        lat = lat[lat0:lat1]
+        self.lon, self.lat = np.meshgrid(lon, lat)
+        
+        KH_lat_max = -9.5
+        KH_lat_min = -20.5
+        KH_lon_max = 10.5
+        KH_lon_min = -.5
+        KHlon0 = list(lon).index(KH_lon_min)
+        KHlon1 = list(lon).index(KH_lon_max)+1
+        KHlat0 = list(lat).index(KH_lat_max)
+        KHlat1 = list(lat).index(KH_lat_min)+1
+        
+        normal_keys = ['Aerosol_Optical_Depth_Average_Ocean_Mean',
+        'AOD_550_Dark_Target_Deep_Blue_Combined_Mean',
+        'Cloud_Fraction_Mean',
+        'Cloud_Effective_Radius_1621_Liquid_Mean',
+        'Cloud_Effective_Radius_Liquid_Mean',
+        'Cloud_Effective_Radius_37_Liquid_Mean',
+        'Cloud_Optical_Thickness_1621_Liquid_Mean',
+        'Cloud_Optical_Thickness_Liquid_Mean',
+        'Cloud_Optical_Thickness_37_Liquid_Mean',
+        "Aerosol_Optical_Depth_Land_Ocean_Mean",
+        "Atmospheric_Water_Vapor_Mean", 
+        'Cloud_Effective_Radius_1621_Liquid_Mean', 
+        'Cloud_Effective_Radius_Liquid_Mean',
+        "Cloud_Fraction_Day_Mean",
+        "Cloud_Fraction_Mean",
+        "Cloud_Fraction_Nadir_Day_Mean",
+        "Cloud_Fraction_Nadir_Mean",
+        "Cloud_Optical_Thickness_1621_Liquid_Mean",
+        "Cloud_Optical_Thickness_Liquid_Mean",
+        "Cloud_Top_Height_Night_Mean",
+        "Cloud_Top_Height_Mean",
+        "Cloud_Top_Height_Day_Mean",
+        "Cloud_Top_Pressure_Day_Mean",
+        "Cloud_Top_Pressure_Mean",
+        "Cloud_Top_Pressure_Night_Mean",
+        "Cloud_Top_Temperature_Day_Mean",
+        "Cloud_Top_Temperature_Mean",
+        "Cloud_Top_Temperature_Night_Mean",
+        "Cloud_Water_Path_1621_Liquid_Mean",
+        "Cloud_Water_Path_Liquid_Mean"]
+        
+        special_keys = ['Cirrus_Fraction_SWIR',
+        'Cirrus_Fraction_Infrared',
+        "High_Cloud_Fraction_Infrared"]
+        
+        keys = []
+        
+        for key in normal_keys:
+            if self.type == 'D': keys.append(key)
+            else: keys.append(key+'_Mean')
+        
+        for key in special_keys:
+            if self.type == 'D': keys.remove(key)
+            else: keys.append(key+'_FMean')
+                
+        for key in keys:
+            values = a.select(key)[:]
+            attrs = a.select(key).attributes(full=1)
+            scale = attrs['scale_factor'][0]
+            offset = attrs['add_offset'][0]
+            _FillValue = attrs['_FillValue'][0]
+            valid_min = attrs["valid_range"][0][0]
+            valid_max = attrs["valid_range"][0][1]
+            invalid = np.logical_or(values > valid_max, values < valid_min)
+            values = ma.MaskedArray(values, mask=invalid, fill_value=_FillValue)
+            self.ds[key] = (values-offset) * scale
+            self.units[key] = attrs['units'][0]
+            self.names[key] = attrs['long_name'][0]
+
+        a.end()
+    
+    def KH(key,deck='Namibian'):
+        """
+        Calculate average over a subtropical KH93 Sc box.
+        
+        Parameters
+        ----------
+        key : string
+        Variable to plot
+        
+        deck : string
+        Choice of canonical KH93* subtropical Sc boxes:
+            -'Namibian'
+            -'Peruvian'
+            -'Californian'
+            -'Canarian'
+            -'Australian'
+            *Klein and Hartmann, 1993, 'The Seasonal Cycle of Low Stratiform Clouds'
+        
+        """
+            
+    
+    def map(key,KH=False,cmap='viridis'):
+        """
+        Global map of Atmospheric L3 variable.
+        
+        Parameters
+        ----------
+        key : string
+        Variable to plot
+        
+        KH : boolean
+        If True, plot location of subtropical KH93* boxes. Default false.
+            *Klein and Hartmann, 1993, 'The Seasonal Cycle of Low Stratiform Clouds'
+        
+        cmap : string
+        Color map. Default is 'viridis'.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 11/23/2016, Hawthorne, NY
+        """
+        
+
+"""
 General purpose function
 """
 
 class MOD(object):
     """
-    General purpose function intended to work on any MODIS HDF file
+    General purpose function intended to work on any L2 or L3 MODIS HDF file.
     """
     
     def __init__(self,filename):
         """
+        General purpose function intended to work on any L2 or L3 MODIS HDF file
+        
+        *Should not be used for L1b files*
+        
+        **For large files, may take some time to load**
+        
+        Parameters
+        ----------
+        filename : string
+        MODIS HDF file.
+        
+        Returns
+        -------
+        ds : dictionary
+        Datasets contained in file, with scales, offsets, and mask if contained in file.
+        
+        names : dictionary
+        Long name of each dataset in file.
+        
+        units : dictionary
+        Units of each dataset in file.
+        
+        file : string
+        Filename for reference.
+        
+        Modification history
+        --------------------
+        Written: Michael Diamond, 11/23/2016, Hawthorne, NY
         """
         data = SD.SD(filename,SDC.READ)
         self.ds = {}
         self.names = {}
         self.units = {}
         self.file = filename
-        
-    
+        keys = data.datasets().keys()
+        for key in keys:
+            values = data.select(key)[:]
+            attrs = data.select(key).attributes(full=1)
+            for attr in attrs.keys():
+                if 'scale' in attr:
+                    scale = attrs[attr][0]
+                if 'offset' in attr:
+                    offset = attrs[attr][0]
+                if '_FillValue' in attr:
+                    _FillValue = attrs[attr][0]
+                if 'unit' in attr:
+                    unit = attrs[attr][0]
+                if 'long_name' in attr:
+                    long_name = attrs[attr][0]
+            try:
+                    valid_min = attrs["valid_range"][0][0]
+                    valid_max = attrs["valid_range"][0][1]
+                    invalid = np.logical_or(values > valid_max, values < valid_min)
+                    values = ma.MaskedArray(values, mask=invalid, fill_value=_FillValue)
+            except: pass
+            try: values = (values-offset) * scale
+            except: pass
+            try:
+                self.ds[key] = values
+                self.units[key] = unit
+                self.names[key] = long_name
+            except: pass
+        data.end()
 
+    
 
 
 
