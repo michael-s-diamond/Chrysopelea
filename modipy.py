@@ -416,6 +416,14 @@ def colorbar(band):
     else:
         return 'cubehelix'
 
+#Canonical Sc box locations from Klein & Hartmann, 1993
+KH93 = {}
+KH93['Namibian'] = {'N' : -10, 'S' : -20, 'E' : 10, 'W' : 0}
+KH93['Peruvian'] = {'N' : -10, 'S' : -20, 'E' : -80, 'W' : -90}
+KH93['Californian'] = {'N' : 30, 'S' : 20, 'E' : -120, 'W' : -130}
+KH93['Canarian'] = {'N' : 25, 'S' : 15, 'E' : -25, 'W' : -35}
+KH93['Australian'] = {'N' : -25, 'S' : -35, 'E' : 105, 'W' : 95}
+
 """
 Class for MOD021KM/MYD021KM calibrated radiance/reflectance files from LAADS Web (https://ladsweb.nascom.nasa.gov/)
 """
@@ -3409,13 +3417,13 @@ class MOD08(object):
 
     Modification history
     --------------------
-        Written: Michael Diamond, 07/18/2016, Seattle, WA
-        Modified: Michael Diamond, 07/29/16, JFK Airport, NY
+        Written (v.1.0): Michael Diamond, 07/18/2016, Seattle, WA
+        Modified (v.1.1): Michael Diamond, 07/29/16, JFK Airport, NY
             -Weighting KH averages by number of valid pixels
                 -Problem: no number of valid pixel parameter for cloud properties...
                 -For now, commented out.
             -Making scatterplot feature to try and show aerosol indirect effect
-        Modified: Michael Diamond, 11/23/2016
+        Modified (v.1.2): Michael Diamond, 11/28/2016, Seattle, WA
             -KH expanded to calculate average over each subtropical KH93 Sc region
     """
     
@@ -3425,38 +3433,19 @@ class MOD08(object):
         self.month = cal_day(self.jday,self.year).split()[0]
         self.day = int(cal_day(self.jday,self.year).split()[1])
         self.type = file_name[6]
-        if file_name[1] == 'Y':
-            self.satellite = 'Aqua'
-        elif file_name[1] == 'O':
-            self.satellite = 'Terra'
+        if file_name[1] == 'Y': self.satellite = 'Aqua'
+        elif file_name[1] == 'O': self.satellite = 'Terra'
         self.ds = {}
         self.units = {}
         self.names = {}
         a = SD.SD(file_name, SDC.READ)
         
         #Geospatial info
-        lat_max = -4.5
-        lat_min = -25.5
-        lon_max = 15.5
-        lon_min = -15.5
         lon = a.select('XDim')[:]
         lat = a.select('YDim')[:]
-        lon0 = list(lon).index(lon_min)
-        lon1 = list(lon).index(lon_max)+1
-        lat0 = list(lat).index(lat_max)
-        lat1 = list(lat).index(lat_min)+1
-        lon = lon[lon0:lon1]
-        lat = lat[lat0:lat1]
+        self.XDim = list(lon)
+        self.YDim = list(lat)
         self.lon, self.lat = np.meshgrid(lon, lat)
-        
-        KH_lat_max = -9.5
-        KH_lat_min = -20.5
-        KH_lon_max = 10.5
-        KH_lon_min = -.5
-        KHlon0 = list(lon).index(KH_lon_min)
-        KHlon1 = list(lon).index(KH_lon_max)+1
-        KHlat0 = list(lat).index(KH_lat_max)
-        KHlat1 = list(lat).index(KH_lat_min)+1
         
         normal_keys = ['Aerosol_Optical_Depth_Average_Ocean_Mean',
         'AOD_550_Dark_Target_Deep_Blue_Combined_Mean',
@@ -3519,14 +3508,14 @@ class MOD08(object):
 
         a.end()
     
-    def KH(key,deck='Namibian'):
+    def KH(self,key,deck):
         """
         Calculate average over a subtropical KH93 Sc box.
         
         Parameters
         ----------
         key : string
-        Variable to plot
+        Variable to calculate average for
         
         deck : string
         Choice of canonical KH93* subtropical Sc boxes:
@@ -3535,12 +3524,23 @@ class MOD08(object):
             -'Californian'
             -'Canarian'
             -'Australian'
-            *Klein and Hartmann, 1993, 'The Seasonal Cycle of Low Stratiform Clouds'
+            *Klein and Hartmann, 1993, 'The Seasonal Cycle of Low Stratiform Clouds', Journal of Climate
         
+        Modification history
+        --------------------
+        Written: Michael Diamond, 11/28/2016, Seattle, WA
         """
-            
+        if deck not in ['Namibian','Peruvian','Californian','Canarian','Australian']: return 'Invalid deck name'
+        N = self.YDim.index(KH93[deck]['N']+.5)
+        S = self.YDim.index(KH93[deck]['S']-.5)
+        E = self.XDim.index(KH93[deck]['E']+.5)
+        W = self.XDim.index(KH93[deck]['W']-.5)
+        d = self.ds[key][N:S+1,W:E+1]
+        lat = self.lat[N:S+1,W:E+1]
+        KH = np.sum(d*np.cos(np.pi/180.*lat))/np.sum(np.cos(np.pi/180.*lat))
+        return KH
     
-    def map(key,KH=False,cmap='viridis'):
+    def map(self,key,KH=False,cmap='viridis'):
         """
         Global map of Atmospheric L3 variable.
         
@@ -3561,6 +3561,49 @@ class MOD08(object):
         Written: Michael Diamond, 11/23/2016, Hawthorne, NY
         """
         
+"""
+Object for MOD14 fire files
+"""
+class MOD14(object):
+    """
+    Class for looking at MODIS L2 fire products.
+    
+    Parameters
+    ----------
+    filename : string
+    Name of file.
+    
+    Returns
+    -------
+    ds : dictionary
+    Datasets contained in file, with scales, offsets, and mask if contained in file.
+        
+    names : dictionary
+    Long name of each dataset in file.
+        
+    units : dictionary
+    Units of each dataset in file.
+        
+    Modification history
+    --------------------
+    Written: Michael Diamond, 12/02/2016, Seattle, WA
+    """
+    
+    def __init__(self,filename):
+        data = SD.SD(filename,SDC.READ)
+        self.ds = {}
+        self.units = {}
+        self.long_name = {}
+        self.file = filename
+        keys = data.datasets().keys()
+        for key in keys:
+            attrs = data.select(key).attributes(full=1)
+            try:
+                self.ds[key] = data.select(key)[:]
+                self.long_name[key] = attrs['long_name'][0]
+                self.units[key] = attrs['units'][0]
+            except: pass
+        data.end()
 
 """
 General purpose function
@@ -3608,23 +3651,25 @@ class MOD(object):
         self.units = {}
         self.file = filename
         keys = data.datasets().keys()
+        
+        #Take out of init?
         for key in keys:
             values = data.select(key)[:]
             attrs = data.select(key).attributes(full=1)
             for attr in attrs.keys():
-                if 'scale' in attr:
-                    scale = attrs[attr][0]
+                if 'scale' in attr: scale = attrs[attr][0]
+                else: scale = 1
                 if 'offset' in attr:
                     offset = attrs[attr][0]
-                if '_FillValue' in attr:
-                    _FillValue = attrs[attr][0]
-                if 'unit' in attr:
-                    unit = attrs[attr][0]
-                if 'long_name' in attr:
-                    long_name = attrs[attr][0]
+                else: offset = 0
+                if 'unit' in attr: unit = attrs[attr][0]
+                else: self.unit = 'N/A'
+                if 'long_name' in attr: long_name = attrs[attr][0]
+                else: long_name = 'N/A'
             try:
                     valid_min = attrs["valid_range"][0][0]
                     valid_max = attrs["valid_range"][0][1]
+                    _FillValue = attrs['_FillValue'][0]
                     invalid = np.logical_or(values > valid_max, values < valid_min)
                     values = ma.MaskedArray(values, mask=invalid, fill_value=_FillValue)
             except: pass
