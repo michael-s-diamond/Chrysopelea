@@ -292,7 +292,7 @@ def avg_wavelength(band):
     elif band == 36:
         return (14.085 + 14.385)/2. 
     else:
-        print 'Error: Band must be an integer between 1-36.'
+        print('Error: Band must be an integer between 1-36.')
 
 def channel_width(band):
     """
@@ -385,7 +385,7 @@ def channel_width(band):
     elif band == 36:
         return np.abs(14.085 - 14.385) 
     else:
-        print 'Error: Band must be an integer between 1-36.'
+        print('Error: Band must be an integer between 1-36.')
 
 #Characteristic colorbar set by band
 def colorbar(band):
@@ -763,7 +763,7 @@ class MOD021KM(object):
         elif 20 <= band <= 36:
             wvl = avg_wavelength(band)/10.**6 #In m
         else:
-            print 'Error: Band must be an integer between 1 and 36.'
+            print('Error: Band must be an integer between 1 and 36.')
         Tb = (h*c/(k*wvl)/(np.log(1+2.*h*c**2/(B*wvl**5)))) #In K
         return Tb
     
@@ -820,7 +820,7 @@ class MOD021KM(object):
             -Aesthetic changes to plots
         """
         if not type(band) == int or band > 36:
-            print 'Error: Band must be an integer from 1-36'
+            print('Error: Band must be an integer from 1-36')
             return
         plt.figure()
         plt.clf()
@@ -844,7 +844,7 @@ class MOD021KM(object):
             resolution='l',satellite_height=705000)
             m.bluemarble(alpha=.75)
         else:
-            print "Error: Projection must be 'merc', 'global', or 'satellite'."
+            print("Error: Projection must be 'merc', 'global', or 'satellite'.")
             return
         m.drawcoastlines()
         m.drawcountries()
@@ -912,12 +912,12 @@ class MOD021KM(object):
         Written: Michael Diamond, 09/10/2016, Swakopmund, Namibia
         """
         if not type(band) == int or band > 36:
-            print 'Error: Band must be an integer from 1-36'
+            print('Error: Band must be an integer from 1-36')
             return
         ref_valid = [26]
         for i in range(0,20): ref_valid.append(i)
         if data == 'reflectance' and band not in ref_valid:
-            print 'Error: Band must be an integer between 1 and 19 or 26 for reflectance'
+            print('Error: Band must be an integer between 1 and 19 or 26 for reflectance')
             return
         plt.figure()
         plt.clf()
@@ -943,7 +943,7 @@ class MOD021KM(object):
             resolution='l',satellite_height=705000)
             m.bluemarble(alpha=.75)
         else:
-            print "Error: Projection must be 'merc', 'global', or 'satellite'"
+            print("Error: Projection must be 'merc', 'global', or 'satellite'")
             return
         if coastlines: m.drawcoastlines()
         if countries: m.drawcountries()
@@ -952,17 +952,17 @@ class MOD021KM(object):
                 m.drawmapboundary(fill_color=ocean_color)
                 m.fillcontinents('floralwhite',lake_color='steelblue',zorder=0)
             except:
-                print 'Warning: Ocean fill color not recognized. Default is steelblue.'
+                print('Warning: Ocean fill color not recognized. Default is steelblue.')
                 m.drawmapboundary(fill_color='steelblue')
         if not land_color == None and lake_color == None: 
             try: m.fillcontinents(land_color,zorder=0)
             except:
-                print 'Warning: Land fill color not recognized.'
+                print('Warning: Land fill color not recognized.')
         if not lake_color == None: 
             if land_color == None: land_color = 'floralwhite'
             try: m.fillcontinents(land_color,lake_color=lake_color,zorder=0)
             except:
-                print 'Warning: Lake and/or land fill color not recognized.'
+                print('Warning: Lake and/or land fill color not recognized.')
         if data == 'radiance': 
             d = self.radiance(band,hi)
             vmin = 0
@@ -983,7 +983,7 @@ class MOD021KM(object):
                 m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
                 cmap=cm,latlon=True,vmin=vmin,vmax=vmax)
             except:
-                print "Woops, that doesn't look like a valid colormap. Using default."
+                print("Woops, that doesn't look like a valid colormap. Using default.")
                 m.pcolormesh(lon,lat,d[:np.shape(lon)[0],:np.shape(lat)[1]],\
                 cmap=colorbar(band),latlon=True,vmin=vmin,vmax=vmax)
         cbar = m.colorbar()
@@ -1133,7 +1133,7 @@ class MOD06(object):
     def __init__(self,cfile):
         self.day = cfile[14:16+1]
         self.year = cfile[10:13+1]
-    	self.time = cfile[18:21+1]
+        self.time = cfile[18:21+1]
         if cfile[1] == 'Y':
             self.satellite = 'Aqua'
         elif cfile[1] == 'O':
@@ -1744,9 +1744,9 @@ class nrtMOD06(object):
         #
         self.jday = int(self.file[14:16+1])
         self.year = int(self.file[10:13+1])
-    	self.month = cal_day(self.jday,self.year).split()[0]
-    	self.day = int(cal_day(self.jday,self.year).split()[1])
-    	self.time = self.file[18:21+1]
+        self.month = cal_day(self.jday,self.year).split()[0]
+        self.day = int(cal_day(self.jday,self.year).split()[1])
+        self.time = self.file[18:21+1]
         if self.file[1] == 'Y':
             self.satellite = 'Aqua'
         elif self.file[1] == 'O':
@@ -2472,7 +2472,7 @@ class nrtMOD06(object):
         Written: Michael Diamond, 8/9/2016, Seattle, WA
         """
         if not type(data) == str:
-            print 'Error: Data must be a valid key to the "ds" dictionary.'
+            print('Error: Data must be a valid key to the "ds" dictionary.')
             return
         plt.figure()
         plt.clf()
@@ -2496,7 +2496,7 @@ class nrtMOD06(object):
             resolution='l',satellite_height=705000)
             m.bluemarble(alpha=.75)
         else:
-            print "Error: Projection must be 'merc', 'global', or 'satellite'."
+            print("Error: Projection must be 'merc', 'global', or 'satellite'.")
             return
         m.drawcoastlines()
         m.drawcountries()
@@ -2771,7 +2771,7 @@ class nrtMOD06(object):
             kD = 'delta_Nd16'
             kE = 'del_Nd16'
         else:
-            print 'Error: Invalid data input.'
+            print('Error: Invalid data input.')
             return
         #
         ###Variables at different wavelengths
@@ -2999,9 +2999,9 @@ class nrtACAERO(object):
         #
         self.jday = int(self.file[17:20])
         self.year = int(self.file[13:17])
-    	self.month = cal_day(self.jday,self.year).split()[0]
-    	self.day = int(cal_day(self.jday,self.year).split()[1])
-    	self.time = self.file[21:25]
+        self.month = cal_day(self.jday,self.year).split()[0]
+        self.day = int(cal_day(self.jday,self.year).split()[1])
+        self.time = self.file[21:25]
         if self.file[1] == 'Y':
             self.satellite = 'Aqua'
         elif self.file[1] == 'O':
@@ -3074,7 +3074,7 @@ class nrtACAERO(object):
         Written: Michael Diamond, 8/9/2016, Seattle, WA
         """
         if not type(data) == str:
-            print 'Error: Data must be a valid key to the "ds" dictionary.'
+            print('Error: Data must be a valid key to the "ds" dictionary.')
             return
         plt.figure()
         plt.clf()
@@ -3098,7 +3098,7 @@ class nrtACAERO(object):
             resolution='l',satellite_height=705000)
             m.bluemarble(alpha=.75)
         else:
-            print "Error: Projection must be 'merc', 'global', or 'satellite'."
+            print("Error: Projection must be 'merc', 'global', or 'satellite'.")
             return
         m.drawcoastlines()
         m.drawcountries()
@@ -3489,7 +3489,7 @@ class MOD08(object):
             else: keys.append(key+'_Mean')
         
         for key in special_keys:
-            if self.type == 'D': keys.remove(key)
+            if self.type == 'D': keys.append(key)
             else: keys.append(key+'_FMean')
                 
         for key in keys:

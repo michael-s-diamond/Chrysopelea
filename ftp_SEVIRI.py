@@ -36,8 +36,6 @@ Get LARC SEVIRI data
 file_directory = '/Users/michaeldiamond/Documents/oracles_files/msg/%s' % jday
 os.chdir(file_directory)
 current_files = os.listdir(file_directory)
-try: os.system('perl retrieve_raw_%s.pl' % jday)
-except: print 'Error getting raw counts at %s' % now
 try: os.system('perl retrieve_prod_%s.pl' % jday)
 except: print 'Error getting products at %s' % now
 new_files = os.listdir(file_directory)

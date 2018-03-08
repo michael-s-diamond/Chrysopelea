@@ -627,7 +627,7 @@ class aero(object):
             cbar.ax.set_yticklabels(['Sea Salt','Sulphate','Organic C','Black C','Dust'])
             cbar.ax.tick_params(labelsize=size-2) 
         else:
-            print 'Error: Invalid key. Check names for available datasets.'
+            print('Error: Invalid key. Check names for available datasets.')
         m.scatter(14.5247,-22.9390,s=250,c='orange',marker='D',latlon=True)
         m.scatter(-14.3559,-7.9467,s=375,c='c',marker='*',latlon=True)
         m.scatter(-5.7089,-15.9650,s=375,c='chartreuse',marker='*',latlon=True)
